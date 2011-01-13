@@ -1,0 +1,673 @@
+gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  1
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+ 
+               00001 ;
+               00002 ;  PIC macro library
+               00003 ;  Developed by Karl Lunt, May 1999
+               00004 ;
+               00005 
+               00006 ;
+               00007 ;  This library provides macros for program structures such
+               00008 ;  as FOR-NEXT, REPEAT-ALWAYS, REPEAT-UNTIL, and others.
+               00009 ;
+               00010 ;  To incorporate this library in your PIC assembler program,
+               00011 ;  add the following INCLUDE statement immediately after the
+               00012 ;  INCLUDE statement that adds the Microchip equates for your
+               00013 ;  specific processor:
+               00014 ;
+               00015 ;       include         "macros.asm"
+               00016 ;
+               00017 ;  For example, if you are developing code for the 12c672,
+               00018 ;  you would use equates similar to:
+               00019 ;
+               00020 ;       include         ".\p12c672.inc"
+               00021 ;       include         ".\macros.asm"
+               00022 ;
+               00023 
+               00024 ;
+               00025 ;  Version 1.0   29 May 1999
+               00026 ;  Initial release.  Includes WAITWHILE, WAITUNTIL, and POLL-ENDPOLL.
+               00027 ;  Changed movfw to movf, to support older MCUs.  Will still give errors
+               00028 ;  in NEXTL macro on older PICs, since that macro uses the addlw
+               00029 ;  instruction.
+               00030 ;
+               00031 
+               00032 
+               00033 ;
+               00034 ;  Declare some variables used by the macro library.
+               00035 ;
+               00036 
+               00037         variable        _forknt=0
+               00038         variable        _nxtknt=0
+               00039         variable        _rptknt=0
+               00040         variable        _alwknt=0
+               00041         variable        _untknt=0
+               00042         variable        _seltot=0
+               00043         variable        _selknt=0
+               00044         variable        _castot=0
+               00045         variable        _casknt=0
+               00046         variable        _waitk=0
+               00047         variable        _pollk=0
+               00048         variable        _pollt=0
+               00049 
+               00050 
+               00051 
+               00052 ;
+               00053 ;  Define the BEQ (branch-if-equal)
+               00054 ;
+gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  2
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+ 
+               00055 ;  Syntax:
+               00056 ;               beq     label
+               00057 ;
+               00058 ;  The BEQ macro tests the current state of the Z-bit.  It
+               00059 ;  does not alter W or any registers.
+               00060 ;
+               00061 
+               00062 beq     macro   addr
+               00063         btfsc   STATUS,Z
+               00064         goto    addr
+               00065         endm
+               00066 
+               00067 
+               00068 ;
+               00069 ;  BNE (branch-if-not-equal)
+               00070 ;
+               00071 ;  Syntax:
+               00072 ;               bne     label
+               00073 ;
+               00074 ;  The BNE macro tests the current state of the Z-bit.  It
+               00075 ;  does not alter W or any registers.
+               00076 ;
+               00077 
+               00078 bne     macro   addr
+               00079         btfss   STATUS,Z
+               00080         goto    addr
+               00081         endm
+               00082 
+               00083 
+               00084 ;
+               00085 ;  FOR (start of FOR-NEXT loop)
+               00086 ;
+               00087 ;  Syntax:
+               00088 ;               for     var,begl,endl
+               00089 ;
+               00090 ;  The FOR macro starts a FOR-NEXT loop.  The arguments are:
+               00091 ;  var is a RAM variable used as the loop index,
+               00092 ;  begl is a literal value used as the initial index value,
+               00093 ;  endl is a literal value used as the ending index value.
+               00094 ;
+               00095 ;  Control will run through the FOR-NEXT loop until the value
+               00096 ;  in var EQUALS the endl literal value; the value is tested
+               00097 ;  at the top of the loop.  At this point, control exits the
+               00098 ;  loop at the corresponding NEXT macro.
+               00099 ;
+               00100 ;  This macro destroys the contents of the W register.
+               00101 ;
+               00102 ;  You may terminate a FOR loop with NEXT, NEXTL, or NEXTF.
+               00103 ;
+               00104 
+               00105 for     macro   var,begl,endl
+               00106         movlw   begl
+               00107         movwf   var
+               00108 _for#v(_forknt)
+gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  3
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+ 
+               00109         movlw   endl
+               00110         subwf   var,w
+               00111 ;       movf    var,w
+               00112 ;       sublw   endl
+               00113         beq     _next#v(_forknt)
+               00114 _forknt set     _forknt+1
+               00115 _nxtknt set     _forknt
+               00116         endm
+               00117 
+               00118 
+               00119 ;
+               00120 ;  FORF (start of FORF-NEXT loop)
+               00121 ;
+               00122 ;  Syntax:
+               00123 ;               forf    var,begl,endf
+               00124 ;
+               00125 ;  The FORF macro starts a FORF-NEXT loop.  The arguments are:
+               00126 ;  var is a RAM variable used as the loop index,
+               00127 ;  begl is a literal value used as the initial index value,
+               00128 ;  endf is a flag or RAM variable used as the ending index
+               00129 ;  value.
+               00130 ;
+               00131 ;  Control will run through the FORF-NEXT loop until the value
+               00132 ;  in var EQUALS the endf variable value; the value is tested
+               00133 ;  at the top of the loop.  At this point, control exits the
+               00134 ;  loop at the corresponding NEXT macro.
+               00135 ;
+               00136 ;  This macro destroys the contents of the W register.
+               00137 ;
+               00138 ;  You may terminate a FORF loop with NEXT, NEXTL, or NEXTF.
+               00139 ;
+               00140 
+               00141 forf    macro   var,begl,endf
+               00142         movlw   begl
+               00143         movwf   var
+               00144 _for#v(_forknt)
+               00145         movf    var,w
+               00146         subwf   endf
+               00147         beq     _next#v(_forknt)
+               00148 _forknt set     _forknt+1
+               00149 _nxtknt set     _forknt
+               00150         endm
+               00151 
+               00152 
+               00153 ;
+               00154 ;  NEXT (end of a FOR-NEXT loop)
+               00155 ;
+               00156 ;  Syntax:
+               00157 ;               next    var
+               00158 ;
+               00159 ;  The NEXT macro terminates a FOR-NEXT loop.  The 
+               00160 ;  argument is:
+               00161 ;  var is a RAM variable that is the index of the FOR-NEXT loop.
+               00162 ;
+gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  4
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+ 
+               00163 ;  Control will increment the value in var, then go back to
+               00164 ;  the top of the FOR-NEXT loop for testing.  Note that the var
+               00165 ;  argument for the NEXT macro must match the var argument for
+               00166 ;  the corresponding FOR macro.  The macro library does not perform
+               00167 ;  this check for you; you have to get it right yourself!
+               00168 ;
+               00169 ;  This macro alters the contents of the W register and the index
+               00170 ;  variable var.
+               00171 ;
+               00172 ;  You may use NEXT to terminate a FOR-NEXT, FORF-NEXT, or
+               00173 ;  FORL-NEXT loop.
+               00174 ;
+               00175 
+               00176 next    macro   var
+               00177 _nxtknt set     _nxtknt-1
+               00178         incf    var,f
+               00179         goto    _for#v(_nxtknt)
+               00180 _next#v(_nxtknt)
+               00181         endm
+               00182 
+               00183 
+               00184 ;
+               00185 ;  NEXTL (end of a FOR-NEXTL loop)
+               00186 ;
+               00187 ;  Syntax:
+               00188 ;               nextl   var,incl
+               00189 ;
+               00190 ;  The NEXTL macro terminates a FOR-NEXTL loop.  The 
+               00191 ;  arguments are:
+               00192 ;  var is a RAM variable that is the index of the FOR-NEXTL loop,
+               00193 ;  incl is a literal value used to modify the index.
+               00194 ;
+               00195 ;  Control will add the literal incl to the value in var, then
+               00196 ;  go back to the top of the FOR-NEXTL loop for testing.  Note
+               00197 ;  that the var argument for the NEXTL macro must match the var
+               00198 ;  argument for the corresponding FOR macro.  The macro library
+               00199 ;  does not perform this check for you; you have to get it right
+               00200 ;  yourself!
+               00201 ;
+               00202 ;  This macro alters the contents of the W register and the index
+               00203 ;  variable var.
+               00204 ;
+               00205 ;  You may use NEXTL to terminate a FOR-NEXTL, FORF-NEXTL, or
+               00206 ;  FORL-NEXTL loop.
+               00207 ;
+               00208 ;  NOTE:  This macro uses the addlw instruction, which is not
+               00209 ;  supported on the older PICs, such as the 16c54.  Using this
+               00210 ;  macro in a source file for such a chip will generate assembler
+               00211 ;  errors.
+               00212 ;
+               00213 
+               00214 nextl   macro   var,incl
+               00215 _nxtknt set     _nxtknt-1
+               00216         movf    var,w
+gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  5
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+ 
+               00217         addlw   incl
+               00218         movwf   var
+               00219         goto    _for#v(_nxtknt)
+               00220 _next#v(_nxtknt)
+               00221         endm
+               00222 
+               00223 
+               00224 ;
+               00225 ;  NEXTF (end of a FOR-NEXTF loop)
+               00226 ;
+               00227 ;  Syntax:
+               00228 ;               nextf   var,incf
+               00229 ;
+               00230 ;  The NEXTF macro terminates a FOR-NEXTF loop.  The 
+               00231 ;  arguments are:
+               00232 ;  var is a RAM variable that is the index of the FOR-NEXTL loop,
+               00233 ;  incf is a register whose value is used to modify the index.
+               00234 ;
+               00235 ;  Control will add the value in incf to the value in var, then
+               00236 ;  go back to the top of the FOR-NEXTF loop for testing.  Note
+               00237 ;  that the var argument for the NEXTF macro must match the var
+               00238 ;  argument for the corresponding FOR macro.  The macro library
+               00239 ;  does not perform this check for you; you have to get it right
+               00240 ;  yourself!
+               00241 ;
+               00242 ;  This macro alters the contents of the W register and the index
+               00243 ;  variable var.
+               00244 ;
+               00245 ;  You may use NEXTF to terminate a FOR-NEXTF, FORF-NEXTF, or
+               00246 ;  FORL-NEXTF loop.
+               00247 ;
+               00248 
+               00249 nextf   macro   var,incf
+               00250 _nxtknt set     _nxtknt-1
+               00251         movf    var,w
+               00252         addwf   incf,f
+               00253         goto    _for#v(_nxtknt)
+               00254 _next#v(_nxtknt)
+               00255         endm
+               00256 
+               00257 
+               00258 ;
+               00259 ;  REPEAT (start of a REPEAT-ALWAYS or REPEAT-UNTIL loop)
+               00260 ;
+               00261 ;  Syntax:
+               00262 ;               repeat
+               00263 ;
+               00264 ;  The REPEAT macro marks the start of a REPEAT-ALWAYS or
+               00265 ;  REPEAT-UNTILEQ or REPEAT-UNTILNE loop.  Control will always
+               00266 ;  return to the start of the REPEAT macro if the loop is
+               00267 ;  terminated with an ALWAYS macro.  Control will conditionally
+               00268 ;  return to the start of the REPEAT macro if the loop is
+               00269 ;  terminated with an UNTILEQ or UNTILNE macro.
+               00270 ;
+gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  6
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+ 
+               00271 ;  This macro does not alter the W register.
+               00272 ;
+               00273 
+               00274 repeat  macro
+               00275 _rpt#v(_rptknt)
+               00276 _rptknt set     _rptknt+1
+               00277 _alwknt set     _rptknt
+               00278 _untknt set     _rptknt
+               00279         endm
+               00280 
+               00281 
+               00282 ;
+               00283 ;  ALWAYS (returns to corresponding REPEAT macro)
+               00284 ;
+               00285 ;  Syntax:
+               00286 ;               always
+               00287 ;
+               00288 ;  The ALWAYS macro marks the end of a REPEAT-ALWAYS loop.
+               00289 ;  Control is automatically passed back to the corresponding
+               00290 ;  REPEAT macro.
+               00291 ;
+               00292 ;  This macro does not alter the W register.
+               00293 ;
+               00294 
+               00295 always  macro
+               00296 _alwknt set     _alwknt-1
+               00297         goto    _rpt#v(_alwknt)
+               00298         endm
+               00299 
+               00300 
+               00301 ;
+               00302 ;  UNTILEQ (conditionally returns to corresponding REPEAT macro)
+               00303 ;
+               00304 ;  Syntax:
+               00305 ;               untileq
+               00306 ;
+               00307 ;  The UNTILEQ macro marks the end of a REPEAT-UNTILEQ loop.
+               00308 ;  Control is passed back to the corresponding REPEAT macro only
+               00309 ;  if the Z-bit is cleared at the time the UNTILEQ macro is
+               00310 ;  processed.
+               00311 ;
+               00312 ;  This macro does not alter the W register.
+               00313 ;
+               00314 
+               00315 untileq macro
+               00316 _untknt set     _untknt-1
+               00317         bne     _rpt#v(_untknt)
+               00318         endm
+               00319 
+               00320 
+               00321 ;
+               00322 ;  UNTILNE (conditionally returns to corresponding REPEAT macro)
+               00323 ;
+               00324 ;  Syntax:
+gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  7
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+ 
+               00325 ;               untilne
+               00326 ;
+               00327 ;  The UNTILEQ macro marks the end of a REPEAT-UNTILNE loop.
+               00328 ;  Control is passed back to the corresponding REPEAT macro only
+               00329 ;  if the Z-bit is set at the time the UNTILNE macro is processed.
+               00330 ;
+               00331 ;  This macro does not alter the W register.
+               00332 ;
+               00333 
+               00334 untilne macro
+               00335 _untknt set     _untknt-1
+               00336         beq     _rpt#v(_untknt)
+               00337         endm
+               00338 
+               00339 
+               00340 ;
+               00341 ;  SELECT (declares start of SELECT-ENDSELECT structure)
+               00342 ;
+               00343 ;  Syntax:
+               00344 ;               select
+               00345 ;
+               00346 ;  The SELECT macro marks the beginning of a SELECT-ENDSELECT
+               00347 ;  structure.  A typical SELECT-ENDSELECT structure looks like this:
+               00348 ;
+               00349 ;       select                  ; start of SELECT block
+               00350 ;       case    5               ; if W = 5...
+               00351 ;         .                     ; do something
+               00352 ;       endcase                 ; end of W = 5 clause
+               00353 ;       casef   foo             ; if W = foo
+               00354 ;         .                     ; do something else
+               00355 ;       endcase                 ; end of W = foo clause
+               00356 ;         .                     ; default action (all cases fail)
+               00357 ;       endselect               ; end of SELECT block
+               00358 ;
+               00359 ;  This macro does not alter the W register.
+               00360 ;
+               00361 
+               00362 select  macro
+               00363 _seltot set     _seltot+1
+               00364 _selknt set     _seltot
+               00365         endm
+               00366 
+               00367 
+               00368 ;
+               00369 ;  ENDSELECT (declares end of SELECT-ENDSELECT structure)
+               00370 ;
+               00371 ;  Syntax:
+               00372 ;               endselect
+               00373 ;
+               00374 ;  The ENDSELECT macro marks the end of a SELECT-ENDSELECT
+               00375 ;  structure.  You must terminate each SELECT macro with
+               00376 ;  a matching ENDSELECT macro or MPASM will report errors.
+               00377 ;
+               00378 ;  This macro does not alter the W register.
+gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  8
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+ 
+               00379 ;
+               00380 
+               00381 endselect       macro
+               00382 sel#v(_selknt)
+               00383 _selknt set     _selknt-1
+               00384         endm
+               00385 
+               00386 
+               00387 ;
+               00388 ;  CASE (declares start of a CASE-ENDCASE structure)
+               00389 ;
+               00390 ;  Syntax:
+               00391 ;               case    lit
+               00392 ;
+               00393 ;  where lit is a literal value used as the CASE selector.
+               00394 ;
+               00395 ;  When the CASE macro is executed, the value in W is compared
+               00396 ;  with the literal value lit.  If W equals lit, code following
+               00397 ;  the CASE macro is executed.  If W does not equal lit, control
+               00398 ;  passes to the code following the corresponding ENDCASE macro.
+               00399 ;
+               00400 ;  W is preserved in the CASE macro.
+               00401 ;
+               00402 
+               00403 case    macro   lit
+               00404 _castot set     _castot+1
+               00405 _casknt set     _castot
+               00406         xorlw   lit
+               00407         beq     cas#v(_casknt)
+               00408         xorlw   lit
+               00409         goto    ecas#v(_casknt)
+               00410 cas#v(_casknt)
+               00411         xorlw   lit
+               00412         endm
+               00413 
+               00414 
+               00415 ;
+               00416 ;  CASEF (declares start of a CASEF-ENDCASE structure)
+               00417 ;
+               00418 ;  Syntax:
+               00419 ;               casef   var
+               00420 ;
+               00421 ;  where var is a register or variable used as the CASEF selector.
+               00422 ;
+               00423 ;  When the CASEF macro is executed, the value in W is compared
+               00424 ;  with the value in var.  If W equals var, code following
+               00425 ;  the CASEF macro is executed.  If W does not equal var, control
+               00426 ;  passes to the code following the corresponding ENDCASE macro.
+               00427 ;
+               00428 ;  W is preserved in the CASEF macro.
+               00429 ;
+               00430 
+               00431 casef   macro   var
+               00432 _castot set     _castot+1
+gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  9
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+ 
+               00433 _casknt set     _castot
+               00434         xorwf   var,w
+               00435         beq     cas#v(_casknt)
+               00436         xorwf   var,w
+               00437         goto    ecas#v(_casknt)
+               00438 cas#v(_casknt)
+               00439         xorwf   var,w
+               00440         endm
+               00441 
+               00442 
+               00443 ;
+               00444 ;  ENDCASE (declares end of a CASE-ENDCASE or CASEF-ENDCASE structure)
+               00445 ;
+               00446 ;  Syntax:
+               00447 ;               endcase
+               00448 ;
+               00449 ;  The ENDCASE macro marks the end of a CASE-ENDCASE or CASEF-ENDCASE
+               00450 ;  structure.  This macro serves as a jump address for the corresponding
+               00451 ;  CASE or CASEF macro.
+               00452 ;
+               00453 ;  You must have an ENDCASE macro for each CASE or CASEF macro.  If
+               00454 ;  not, MPASM will report errors when it assembles your code.
+               00455 ;
+               00456 ;  This macro preserves the W register.
+               00457 ;
+               00458 
+               00459 endcase macro
+               00460         goto    sel#v(_selknt)
+               00461 ecas#v(_casknt)
+               00462 _casknt set     _casknt-1
+               00463         endm
+               00464 
+               00465 
+               00466 ;
+               00467 ;  WAITWHILE (declares a high-speed WAIT-WHILE loop)
+               00468 ;
+               00469 ;  Syntax:
+               00470 ;
+               00471 ;               waitwhile       addr,andl,xorl
+               00472 ;
+               00473 ;  The WAITWHILE macro creates a tight loop that reads the byte
+               00474 ;  in address addr, ANDs it with the literal andl, then XORs the
+               00475 ;  result with the literal xorl.  If the result is TRUE (non-zero),
+               00476 ;  the loop repeats.  If the result is FALSE (zero), control exits
+               00477 ;  the macro.
+               00478 ;
+               00479 ;  This macro destroys the W register.  It does not modify addr.
+               00480 ;
+               00481 
+               00482 waitwhile       macro   addr,andl,xorl
+               00483 waitw#v(_waitk)
+               00484         movf    addr,w
+               00485         andlw   andl
+               00486         if      xorl != 0
+gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE 10
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+ 
+               00487         xorlw   xorl
+               00488         endif
+               00489         bne     waitw#v(_waitk)
+               00490 _waitk  set     _waitk+1
+               00491         endm
+               00492 
+               00493 
+               00494 ;
+               00495 ;  WAITUNTIL (declares a high-speed WAIT-UNTIL loop)
+               00496 ;
+               00497 ;  Syntax:
+               00498 ;
+               00499 ;               waituntil       addr,andl,xorl
+               00500 ;
+               00501 ;  The WAITUNTIL macro creates a tight loop that reads the byte
+               00502 ;  in address addr, ANDs it with the literal andl, then XORs the
+               00503 ;  result with the literal xorl.  If the result is TRUE (non-zero),
+               00504 ;  control exits the macro.  If the result is FALSE (zero),
+               00505 ;  the loop repeats.
+               00506 ;
+               00507 ;  This macro destroys the W register.  It does not modify addr.
+               00508 ;
+               00509 
+               00510 
+               00511 waituntil       macro   addr,andl,xorl
+               00512 waitw#v(_waitk)
+               00513         movf    addr,w
+               00514         andlw   andl
+               00515         if      xorl != 0
+               00516         xorlw   xorl
+               00517         endif
+               00518         beq     waitw#v(_waitk)
+               00519 _waitk  set     _waitk+1
+               00520         endm
+               00521 
+               00522 
+               00523 ;
+               00524 ;  POLL (starts a POLL-ENDPOLL structure)
+               00525 ;
+               00526 ;  Syntax:
+               00527 ;
+               00528 ;               poll    addr,andl,xorl
+               00529 ;
+               00530 ;  The POLL macro reads the byte in address addr, ANDs it with
+               00531 ;  the literal andl, then XORs the result with the literal xorl.
+               00532 ;  If the result is TRUE (non-zero), control passes to the code
+               00533 ;  immediately following the macro.  If the result is FALSE
+               00534 ;  (zero), control jumps to the corresponding ENDPOLL macro.
+               00535 ;
+               00536 ;  For example, the following POLL command will test the address
+               00537 ;  SPORT for bit 3 high:
+               00538 ;
+               00539 ;       poll    SPORT,8,0               test bit 3
+               00540 ;       nop                             do this if bit 3 is high
+gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE 11
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+ 
+               00541 ;       endpoll
+               00542 ;
+               00543 ;  The following POLL command will test the address SPORT for
+               00544 ;  bit 3 high while either bits 2 or 1 are low:
+               00545 ;
+               00546 ;       poll    SPORT,0x0e,0x06         test bits 1-3
+               00547 ;       nop                             do if 3 is high, 1 or 2 is low
+               00548 ;       endpoll
+               00549 ;
+               00550 ;  This macro destroys the W register.  It does not modify addr.
+               00551 ;
+               00552 
+               00553 
+               00554 poll    macro   addr,andl,xorl
+               00555 _pollt  set     _pollt+1
+               00556 _pollk  set     _pollt
+               00557         movf    addr,w
+               00558         andlw   andl
+               00559         xorlw   xorl
+               00560         beq     poll#v(_pollk)
+               00561         endm
+               00562 
+               00563 
+               00564 ;
+               00565 ;  ENDPOLL (marks end of a POLL-ENDPOLL structure)
+               00566 ;
+               00567 ;  The ENDPOLL macro terminates a POLL-ENDPOLL structure.
+               00568 ;  Control reaches this macro if the associated POLL macro
+               00569 ;  fails.
+               00570 ;
+               00571 
+               00572 endpoll macro
+               00573 poll#v(_pollk)
+               00574 _pollk  set     _pollk-1
+               00575 
+               00576 
+               00577         ;; ****************************************
+               00578         ;; SEB'S LEGENDARY ADDITIONS
+               00579         ;; ****************************************
+               00580 
+               00581 
+               00582 endm
+gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE 12
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+__16F877                          00000001
+_alwknt                           00000000
+_casknt                           00000000
+_castot                           00000000
+_forknt                           00000000
+_nxtknt                           00000000
+_pollk                            00000000
+_pollt                            00000000
+_rptknt                           00000000
+_selknt                           00000000
+_seltot                           00000000
+_untknt                           00000000
+_waitk                            00000000
+
+
+Errors   :       0
+Warnings :       0 reported,       1 suppressed
+Messages :       0 reported,       0 suppressed
+

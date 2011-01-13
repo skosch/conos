@@ -1,0 +1,789 @@
+gplink-0.13.7 beta
+Copyright (c) 1998-2005 gputils project
+Listing File Generated: 1-12-2011  22:33:03
+ 
+ 
+Address  Value    Disassembly              Source
+-------  -----    -----------              ------
+                                           
+                                           list R=hex
+                                           list p=16f877
+                                           
+                                           #include "p16f877.inc"
+                                                   LIST
+                                           ; P16F877.INC  Standard Header File, Version 1.00    Microchip Technology, Inc.
+                                                   NOLIST
+                                           ;#include "macros.asm"		
+                                           
+                                           	
+                                           __CONFIG _CP_OFF & _DEBUG_OFF &  _CPD_OFF & _LVP_OFF & _BODEN_OFF & _PWRTE_ON & _WDT_OFF & _XT_OSC
+                                           
+                                           #include "lcd.inc"
+                                           	extern	InitLCD,WR_INS,WR_DATA,ClrLCD
+                                           
+                                           
+                                           	
+                                           	;; VARIABLE ALIAS DECLARATIONS ;; ******************************
+                                           
+                                           org 0	;reset vector
+                                           
+000000   2801     goto	0x1                 goto 	init
+                                           code	;; CODE GOES HERE: INITIALIZATION
+                                           	;; all port a,c,d output, some inputs on b
+                                           	;; clear all portabcd
+                                           	;; call InitLCD
+                                           init
+000001   018b     clrf	0xb                          clrf      INTCON         ; No interrupts
+000002   1683     bsf	0x3, 0x5                      bsf       STATUS,RP0     ; select bank 1
+000003   0185     clrf	0x5                          clrf      TRISA          ; All port A is output
+000004   30f2     movlw	0xf2                        movlw     b'11110010'    ; Set required keypad inputs
+000005   0086     movwf	0x6                         movwf     TRISB
+000006   0187     clrf	0x7                          clrf      TRISC          ; All port C is output
+000007   0188     clrf	0x8                          clrf      TRISD          ; All port D is output
+                                           
+000008   1283     bcf	0x3, 0x5                      bcf       STATUS,RP0     ; select bank 0
+000009   0185     clrf	0x5                          clrf      PORTA
+00000a   0186     clrf	0x6                          clrf      PORTB
+00000b   0187     clrf	0x7                          clrf      PORTC
+00000c   0188     clrf	0x8                          clrf      PORTD
+                                                     
+00000d   2028     call	0x28                         call	InitLCD    ;Initialize the LCD (code in lcd.asm; imported by lcd.inc)
+                                           
+                                           test
+00000e   1c86     btfss	0x6, 0x1           	btfss	PORTB,1     ;Wait until data is available from the keypad
+00000f   280e     goto	0xe                         goto		$-1 
+                                           
+000010   0e06     swapf	0x6, w                     swapf		PORTB,W     ;Read PortB<7:4> into W<3:0>
+000011   390f     andlw	0xf                        andlw		0x0F
+000012   2017     call	0x17                        call     KPHexToChar ;Convert keypad value to LCD character (value is still held in W)
+000013   204c     call	0x4c                        call     WR_DATA      ;Write the value in W to LCD
+                                           
+000014   1886     btfsc	0x6, 0x1                   btfsc		PORTB,1     ;Wait until key is released
+000015   2814     goto	0x14                        goto		$-1
+000016   280e     goto	0xe                         goto     test
+                                           
+                                           
+                                           KPHexToChar
+000017   0782     addwf	0x2, f             	addwf	PCL,f
+000018   3431     retlw	0x31               	dt	"123A456B789C*0#D"
+000019   3432     retlw	0x32               
+00001a   3433     retlw	0x33               
+00001b   3441     retlw	0x41               
+00001c   3434     retlw	0x34               
+00001d   3435     retlw	0x35               
+00001e   3436     retlw	0x36               
+00001f   3442     retlw	0x42               
+000020   3437     retlw	0x37               
+000021   3438     retlw	0x38               
+000022   3439     retlw	0x39               
+000023   3443     retlw	0x43               
+000024   342a     retlw	0x2a               
+000025   3430     retlw	0x30               
+000026   3423     retlw	0x23               
+000027   3444     retlw	0x44               
+                                           	
+                                           end
+                                           	#include <p16f877.inc>
+                                                   LIST
+                                           ; P16F877.INC  Standard Header File, Version 1.00    Microchip Technology, Inc.
+                                                   NOLIST
+                                           	
+                                           	;Declare unbanked variables (at 0x70 and on)
+                                           	udata_shr
+                                           lcd_tmp	res	1
+                                           lcd_d1	res	1
+                                           lcd_d2	res	1
+                                           com		res	1
+                                           dat		res	1
+                                           
+                                           	;Declare constants for pin assignments (LCD on PORTD)
+                                           #define	RS 	PORTD,2
+                                           #define	E 	PORTD,3
+                                           
+                                           ;Delay: ~160us
+                                           LCD_DELAY macro
+00005f   30ff     movlw	0xff               	movlw   0xFF
+000060   00f1     movwf	0x71               	movwf   lcd_d1
+000061   0bf1     decfsz	0x71, f           	decfsz  lcd_d1,f
+000062   2861     goto	0x61                	goto    $-1
+                                           	endm
+                                           	
+                                           
+                                           	code 
+                                           	global InitLCD,WR_INS,WR_DATA,ClrLCD		;Only these functions are visible to other asm files.
+                                               ;***********************************
+                                           InitLCD
+000028   1283     bcf	0x3, 0x5             	bcf STATUS,RP0
+000029   1588     bsf	0x8, 0x3             	bsf E     ;E default high
+                                           	
+                                           	;Wait for LCD POR to finish (~15ms)
+00002a   205d     call	0x5d                	call lcdLongDelay
+00002b   205d     call	0x5d                	call lcdLongDelay
+00002c   205d     call	0x5d                	call lcdLongDelay
+                                           
+                                           	;Ensure 8-bit mode first (no way to immediately guarantee 4-bit mode)
+                                           	; -> Send b'0011' 3 times
+00002d   3033     movlw	0x33               	movlw	b'00110011'
+00002e   203d     call	0x3d                	call	WR_INS
+00002f   3032     movlw	0x32               	movlw	b'00110010'
+000030   203d     call	0x3d                	call	WR_INS
+                                           
+                                           	; 4 bits, 2 lines, 5x7 dots
+000031   3028     movlw	0x28               	movlw	b'00101000'
+000032   203d     call	0x3d                	call	WR_INS
+                                           
+                                           	; display on/off
+000033   300c     movlw	0xc                	movlw	b'00001100'
+000034   203d     call	0x3d                	call	WR_INS
+                                           	
+                                           	; Entry mode
+000035   3006     movlw	0x6                	movlw	b'00000110'
+000036   203d     call	0x3d                	call	WR_INS
+                                           
+                                           	; Clear ram
+000037   3001     movlw	0x1                	movlw	b'00000001'
+000038   203d     call	0x3d                	call	WR_INS
+000039   0008     return                   	return
+                                               ;************************************
+                                           
+                                               ;ClrLCD: Clear the LCD display
+                                           ClrLCD
+00003a   3001     movlw	0x1                	movlw	B'00000001'
+00003b   203d     call	0x3d                	call	WR_INS
+00003c   0008     return                       return
+                                           
+                                               ;****************************************
+                                               ; Write command to LCD - Input : W , output : -
+                                               ;****************************************
+                                           WR_INS
+00003d   1108     bcf	0x8, 0x2             	bcf		RS				;clear RS
+00003e   00f3     movwf	0x73               	movwf	com				;W --> com
+00003f   39f0     andlw	0xf0               	andlw	0xF0			;mask 4 bits MSB w = X0
+000040   0088     movwf	0x8                	movwf	PORTD			;Send 4 bits MSB
+000041   1588     bsf	0x8, 0x3             	bsf		E				;
+000042   205d     call	0x5d                	call	lcdLongDelay	;__    __
+000043   1188     bcf	0x8, 0x3             	bcf		E				;  |__|
+000044   0e73     swapf	0x73, w            	swapf	com,w
+000045   39f0     andlw	0xf0               	andlw	0xF0			;1111 0010
+000046   0088     movwf	0x8                	movwf	PORTD			;send 4 bits LSB
+000047   1588     bsf	0x8, 0x3             	bsf		E				;
+000048   205d     call	0x5d                	call	lcdLongDelay	;__    __
+000049   1188     bcf	0x8, 0x3             	bcf		E				;  |__|
+00004a   205d     call	0x5d                	call	lcdLongDelay
+00004b   0008     return                   	return
+                                           
+                                               ;****************************************
+                                               ; Write data to LCD - Input : W , output : -
+                                               ;****************************************
+                                           WR_DATA
+00004c   1508     bsf	0x8, 0x2             	bsf		RS				
+00004d   00f4     movwf	0x74               	movwf	dat
+00004e   0874     movf	0x74, w             	movf	dat,w
+00004f   39f0     andlw	0xf0               	andlw	0xF0		
+000050   3e04     addlw	0x4                	addlw	4
+000051   0088     movwf	0x8                	movwf	PORTD		
+000052   1588     bsf	0x8, 0x3             	bsf		E				;
+000053   205d     call	0x5d                	call	lcdLongDelay	;__    __
+000054   1188     bcf	0x8, 0x3             	bcf		E				;  |__|
+000055   0e74     swapf	0x74, w            	swapf	dat,w
+000056   39f0     andlw	0xf0               	andlw	0xF0		
+000057   3e04     addlw	0x4                	addlw	4
+000058   0088     movwf	0x8                	movwf	PORTD		
+000059   1588     bsf	0x8, 0x3             	bsf		E				;
+00005a   205d     call	0x5d                	call	lcdLongDelay	;__    __
+00005b   1188     bcf	0x8, 0x3             	bcf		E				;  |__|
+00005c   0008     return                   	return
+                                           
+                                           lcdLongDelay
+00005d   3014     movlw	0x14                   movlw d'20'
+00005e   00f2     movwf	0x72                   movwf lcd_d2
+                                           LLD_LOOP
+                                               LCD_DELAY
+000063   0bf2     decfsz	0x72, f               decfsz lcd_d2,f
+000064   285f     goto	0x5f                    goto LLD_LOOP
+000065   0008     return                       return
+                                               
+                                           end
+                                           ;
+                                           ;  PIC macro library
+                                           ;  Developed by Karl Lunt, May 1999
+                                           ;
+                                           
+                                           ;
+                                           ;  This library provides macros for program structures such
+                                           ;  as FOR-NEXT, REPEAT-ALWAYS, REPEAT-UNTIL, and others.
+                                           ;
+                                           ;  To incorporate this library in your PIC assembler program,
+                                           ;  add the following INCLUDE statement immediately after the
+                                           ;  INCLUDE statement that adds the Microchip equates for your
+                                           ;  specific processor:
+                                           ;
+                                           ;	include		"macros.asm"
+                                           ;
+                                           ;  For example, if you are developing code for the 12c672,
+                                           ;  you would use equates similar to:
+                                           ;
+                                           ;	include		".\p12c672.inc"
+                                           ;	include		".\macros.asm"
+                                           ;
+                                           
+                                           ;
+                                           ;  Version 1.0   29 May 1999
+                                           ;  Initial release.  Includes WAITWHILE, WAITUNTIL, and POLL-ENDPOLL.
+                                           ;  Changed movfw to movf, to support older MCUs.  Will still give errors
+                                           ;  in NEXTL macro on older PICs, since that macro uses the addlw
+                                           ;  instruction.
+                                           ;
+                                           
+                                           
+                                           ;
+                                           ;  Declare some variables used by the macro library.
+                                           ;
+                                           
+                                           	variable	_forknt=0
+                                           	variable	_nxtknt=0
+                                           	variable	_rptknt=0
+                                           	variable	_alwknt=0
+                                           	variable	_untknt=0
+                                           	variable	_seltot=0
+                                           	variable	_selknt=0
+                                           	variable	_castot=0
+                                           	variable	_casknt=0
+                                           	variable	_waitk=0
+                                           	variable	_pollk=0
+                                           	variable	_pollt=0
+                                           
+                                           
+                                           
+                                           ;
+                                           ;  Define the BEQ (branch-if-equal)
+                                           ;
+                                           ;  Syntax:
+                                           ;		beq	label
+                                           ;
+                                           ;  The BEQ macro tests the current state of the Z-bit.  It
+                                           ;  does not alter W or any registers.
+                                           ;
+                                           
+                                           beq	macro	addr
+                                           	btfsc	STATUS,Z
+                                           	goto	addr
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  BNE (branch-if-not-equal)
+                                           ;
+                                           ;  Syntax:
+                                           ;		bne	label
+                                           ;
+                                           ;  The BNE macro tests the current state of the Z-bit.  It
+                                           ;  does not alter W or any registers.
+                                           ;
+                                           
+                                           bne	macro	addr
+                                           	btfss	STATUS,Z
+                                           	goto	addr
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  FOR (start of FOR-NEXT loop)
+                                           ;
+                                           ;  Syntax:
+                                           ;		for	var,begl,endl
+                                           ;
+                                           ;  The FOR macro starts a FOR-NEXT loop.  The arguments are:
+                                           ;  var is a RAM variable used as the loop index,
+                                           ;  begl is a literal value used as the initial index value,
+                                           ;  endl is a literal value used as the ending index value.
+                                           ;
+                                           ;  Control will run through the FOR-NEXT loop until the value
+                                           ;  in var EQUALS the endl literal value; the value is tested
+                                           ;  at the top of the loop.  At this point, control exits the
+                                           ;  loop at the corresponding NEXT macro.
+                                           ;
+                                           ;  This macro destroys the contents of the W register.
+                                           ;
+                                           ;  You may terminate a FOR loop with NEXT, NEXTL, or NEXTF.
+                                           ;
+                                           
+                                           for	macro	var,begl,endl
+                                           	movlw	begl
+                                           	movwf	var
+                                           _for#v(_forknt)
+                                           	movlw	endl
+                                           	subwf	var,w
+                                           ;	movf	var,w
+                                           ;	sublw	endl
+                                           	beq	_next#v(_forknt)
+                                           _forknt	set	_forknt+1
+                                           _nxtknt	set	_forknt
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  FORF (start of FORF-NEXT loop)
+                                           ;
+                                           ;  Syntax:
+                                           ;		forf	var,begl,endf
+                                           ;
+                                           ;  The FORF macro starts a FORF-NEXT loop.  The arguments are:
+                                           ;  var is a RAM variable used as the loop index,
+                                           ;  begl is a literal value used as the initial index value,
+                                           ;  endf is a flag or RAM variable used as the ending index
+                                           ;  value.
+                                           ;
+                                           ;  Control will run through the FORF-NEXT loop until the value
+                                           ;  in var EQUALS the endf variable value; the value is tested
+                                           ;  at the top of the loop.  At this point, control exits the
+                                           ;  loop at the corresponding NEXT macro.
+                                           ;
+                                           ;  This macro destroys the contents of the W register.
+                                           ;
+                                           ;  You may terminate a FORF loop with NEXT, NEXTL, or NEXTF.
+                                           ;
+                                           
+                                           forf	macro	var,begl,endf
+                                           	movlw	begl
+                                           	movwf	var
+                                           _for#v(_forknt)
+                                           	movf	var,w
+                                           	subwf	endf
+                                           	beq	_next#v(_forknt)
+                                           _forknt	set	_forknt+1
+                                           _nxtknt	set	_forknt
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  NEXT (end of a FOR-NEXT loop)
+                                           ;
+                                           ;  Syntax:
+                                           ;		next	var
+                                           ;
+                                           ;  The NEXT macro terminates a FOR-NEXT loop.  The 
+                                           ;  argument is:
+                                           ;  var is a RAM variable that is the index of the FOR-NEXT loop.
+                                           ;
+                                           ;  Control will increment the value in var, then go back to
+                                           ;  the top of the FOR-NEXT loop for testing.  Note that the var
+                                           ;  argument for the NEXT macro must match the var argument for
+                                           ;  the corresponding FOR macro.  The macro library does not perform
+                                           ;  this check for you; you have to get it right yourself!
+                                           ;
+                                           ;  This macro alters the contents of the W register and the index
+                                           ;  variable var.
+                                           ;
+                                           ;  You may use NEXT to terminate a FOR-NEXT, FORF-NEXT, or
+                                           ;  FORL-NEXT loop.
+                                           ;
+                                           
+                                           next	macro	var
+                                           _nxtknt	set	_nxtknt-1
+                                           	incf	var,f
+                                           	goto	_for#v(_nxtknt)
+                                           _next#v(_nxtknt)
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  NEXTL (end of a FOR-NEXTL loop)
+                                           ;
+                                           ;  Syntax:
+                                           ;		nextl	var,incl
+                                           ;
+                                           ;  The NEXTL macro terminates a FOR-NEXTL loop.  The 
+                                           ;  arguments are:
+                                           ;  var is a RAM variable that is the index of the FOR-NEXTL loop,
+                                           ;  incl is a literal value used to modify the index.
+                                           ;
+                                           ;  Control will add the literal incl to the value in var, then
+                                           ;  go back to the top of the FOR-NEXTL loop for testing.  Note
+                                           ;  that the var argument for the NEXTL macro must match the var
+                                           ;  argument for the corresponding FOR macro.  The macro library
+                                           ;  does not perform this check for you; you have to get it right
+                                           ;  yourself!
+                                           ;
+                                           ;  This macro alters the contents of the W register and the index
+                                           ;  variable var.
+                                           ;
+                                           ;  You may use NEXTL to terminate a FOR-NEXTL, FORF-NEXTL, or
+                                           ;  FORL-NEXTL loop.
+                                           ;
+                                           ;  NOTE:  This macro uses the addlw instruction, which is not
+                                           ;  supported on the older PICs, such as the 16c54.  Using this
+                                           ;  macro in a source file for such a chip will generate assembler
+                                           ;  errors.
+                                           ;
+                                           
+                                           nextl	macro	var,incl
+                                           _nxtknt	set	_nxtknt-1
+                                           	movf	var,w
+                                           	addlw	incl
+                                           	movwf	var
+                                           	goto	_for#v(_nxtknt)
+                                           _next#v(_nxtknt)
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  NEXTF (end of a FOR-NEXTF loop)
+                                           ;
+                                           ;  Syntax:
+                                           ;		nextf	var,incf
+                                           ;
+                                           ;  The NEXTF macro terminates a FOR-NEXTF loop.  The 
+                                           ;  arguments are:
+                                           ;  var is a RAM variable that is the index of the FOR-NEXTL loop,
+                                           ;  incf is a register whose value is used to modify the index.
+                                           ;
+                                           ;  Control will add the value in incf to the value in var, then
+                                           ;  go back to the top of the FOR-NEXTF loop for testing.  Note
+                                           ;  that the var argument for the NEXTF macro must match the var
+                                           ;  argument for the corresponding FOR macro.  The macro library
+                                           ;  does not perform this check for you; you have to get it right
+                                           ;  yourself!
+                                           ;
+                                           ;  This macro alters the contents of the W register and the index
+                                           ;  variable var.
+                                           ;
+                                           ;  You may use NEXTF to terminate a FOR-NEXTF, FORF-NEXTF, or
+                                           ;  FORL-NEXTF loop.
+                                           ;
+                                           
+                                           nextf	macro	var,incf
+                                           _nxtknt	set	_nxtknt-1
+                                           	movf	var,w
+                                           	addwf	incf,f
+                                           	goto	_for#v(_nxtknt)
+                                           _next#v(_nxtknt)
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  REPEAT (start of a REPEAT-ALWAYS or REPEAT-UNTIL loop)
+                                           ;
+                                           ;  Syntax:
+                                           ;		repeat
+                                           ;
+                                           ;  The REPEAT macro marks the start of a REPEAT-ALWAYS or
+                                           ;  REPEAT-UNTILEQ or REPEAT-UNTILNE loop.  Control will always
+                                           ;  return to the start of the REPEAT macro if the loop is
+                                           ;  terminated with an ALWAYS macro.  Control will conditionally
+                                           ;  return to the start of the REPEAT macro if the loop is
+                                           ;  terminated with an UNTILEQ or UNTILNE macro.
+                                           ;
+                                           ;  This macro does not alter the W register.
+                                           ;
+                                           
+                                           repeat	macro
+                                           _rpt#v(_rptknt)
+                                           _rptknt	set	_rptknt+1
+                                           _alwknt	set	_rptknt
+                                           _untknt	set	_rptknt
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  ALWAYS (returns to corresponding REPEAT macro)
+                                           ;
+                                           ;  Syntax:
+                                           ;		always
+                                           ;
+                                           ;  The ALWAYS macro marks the end of a REPEAT-ALWAYS loop.
+                                           ;  Control is automatically passed back to the corresponding
+                                           ;  REPEAT macro.
+                                           ;
+                                           ;  This macro does not alter the W register.
+                                           ;
+                                           
+                                           always	macro
+                                           _alwknt	set	_alwknt-1
+                                           	goto	_rpt#v(_alwknt)
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  UNTILEQ (conditionally returns to corresponding REPEAT macro)
+                                           ;
+                                           ;  Syntax:
+                                           ;		untileq
+                                           ;
+                                           ;  The UNTILEQ macro marks the end of a REPEAT-UNTILEQ loop.
+                                           ;  Control is passed back to the corresponding REPEAT macro only
+                                           ;  if the Z-bit is cleared at the time the UNTILEQ macro is
+                                           ;  processed.
+                                           ;
+                                           ;  This macro does not alter the W register.
+                                           ;
+                                           
+                                           untileq	macro
+                                           _untknt	set	_untknt-1
+                                           	bne	_rpt#v(_untknt)
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  UNTILNE (conditionally returns to corresponding REPEAT macro)
+                                           ;
+                                           ;  Syntax:
+                                           ;		untilne
+                                           ;
+                                           ;  The UNTILEQ macro marks the end of a REPEAT-UNTILNE loop.
+                                           ;  Control is passed back to the corresponding REPEAT macro only
+                                           ;  if the Z-bit is set at the time the UNTILNE macro is processed.
+                                           ;
+                                           ;  This macro does not alter the W register.
+                                           ;
+                                           
+                                           untilne	macro
+                                           _untknt	set	_untknt-1
+                                           	beq	_rpt#v(_untknt)
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  SELECT (declares start of SELECT-ENDSELECT structure)
+                                           ;
+                                           ;  Syntax:
+                                           ;		select
+                                           ;
+                                           ;  The SELECT macro marks the beginning of a SELECT-ENDSELECT
+                                           ;  structure.  A typical SELECT-ENDSELECT structure looks like this:
+                                           ;
+                                           ;	select			; start of SELECT block
+                                           ;	case	5		; if W = 5...
+                                           ;	  .			; do something
+                                           ;	endcase			; end of W = 5 clause
+                                           ;	casef	foo		; if W = foo
+                                           ;	  .			; do something else
+                                           ;	endcase			; end of W = foo clause
+                                           ;	  .			; default action (all cases fail)
+                                           ;	endselect		; end of SELECT block
+                                           ;
+                                           ;  This macro does not alter the W register.
+                                           ;
+                                           
+                                           select	macro
+                                           _seltot	set	_seltot+1
+                                           _selknt	set	_seltot
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  ENDSELECT (declares end of SELECT-ENDSELECT structure)
+                                           ;
+                                           ;  Syntax:
+                                           ;		endselect
+                                           ;
+                                           ;  The ENDSELECT macro marks the end of a SELECT-ENDSELECT
+                                           ;  structure.  You must terminate each SELECT macro with
+                                           ;  a matching ENDSELECT macro or MPASM will report errors.
+                                           ;
+                                           ;  This macro does not alter the W register.
+                                           ;
+                                           
+                                           endselect	macro
+                                           sel#v(_selknt)
+                                           _selknt	set	_selknt-1
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  CASE (declares start of a CASE-ENDCASE structure)
+                                           ;
+                                           ;  Syntax:
+                                           ;		case	lit
+                                           ;
+                                           ;  where lit is a literal value used as the CASE selector.
+                                           ;
+                                           ;  When the CASE macro is executed, the value in W is compared
+                                           ;  with the literal value lit.  If W equals lit, code following
+                                           ;  the CASE macro is executed.  If W does not equal lit, control
+                                           ;  passes to the code following the corresponding ENDCASE macro.
+                                           ;
+                                           ;  W is preserved in the CASE macro.
+                                           ;
+                                           
+                                           case	macro	lit
+                                           _castot set	_castot+1
+                                           _casknt	set	_castot
+                                           	xorlw	lit
+                                           	beq	cas#v(_casknt)
+                                           	xorlw	lit
+                                           	goto	ecas#v(_casknt)
+                                           cas#v(_casknt)
+                                           	xorlw	lit
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  CASEF (declares start of a CASEF-ENDCASE structure)
+                                           ;
+                                           ;  Syntax:
+                                           ;		casef	var
+                                           ;
+                                           ;  where var is a register or variable used as the CASEF selector.
+                                           ;
+                                           ;  When the CASEF macro is executed, the value in W is compared
+                                           ;  with the value in var.  If W equals var, code following
+                                           ;  the CASEF macro is executed.  If W does not equal var, control
+                                           ;  passes to the code following the corresponding ENDCASE macro.
+                                           ;
+                                           ;  W is preserved in the CASEF macro.
+                                           ;
+                                           
+                                           casef	macro	var
+                                           _castot set	_castot+1
+                                           _casknt	set	_castot
+                                           	xorwf	var,w
+                                           	beq	cas#v(_casknt)
+                                           	xorwf	var,w
+                                           	goto	ecas#v(_casknt)
+                                           cas#v(_casknt)
+                                           	xorwf	var,w
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  ENDCASE (declares end of a CASE-ENDCASE or CASEF-ENDCASE structure)
+                                           ;
+                                           ;  Syntax:
+                                           ;		endcase
+                                           ;
+                                           ;  The ENDCASE macro marks the end of a CASE-ENDCASE or CASEF-ENDCASE
+                                           ;  structure.  This macro serves as a jump address for the corresponding
+                                           ;  CASE or CASEF macro.
+                                           ;
+                                           ;  You must have an ENDCASE macro for each CASE or CASEF macro.  If
+                                           ;  not, MPASM will report errors when it assembles your code.
+                                           ;
+                                           ;  This macro preserves the W register.
+                                           ;
+                                           
+                                           endcase	macro
+                                           	goto	sel#v(_selknt)
+                                           ecas#v(_casknt)
+                                           _casknt	set	_casknt-1
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  WAITWHILE (declares a high-speed WAIT-WHILE loop)
+                                           ;
+                                           ;  Syntax:
+                                           ;
+                                           ;  		waitwhile	addr,andl,xorl
+                                           ;
+                                           ;  The WAITWHILE macro creates a tight loop that reads the byte
+                                           ;  in address addr, ANDs it with the literal andl, then XORs the
+                                           ;  result with the literal xorl.  If the result is TRUE (non-zero),
+                                           ;  the loop repeats.  If the result is FALSE (zero), control exits
+                                           ;  the macro.
+                                           ;
+                                           ;  This macro destroys the W register.  It does not modify addr.
+                                           ;
+                                           
+                                           waitwhile	macro	addr,andl,xorl
+                                           waitw#v(_waitk)
+                                           	movf	addr,w
+                                           	andlw	andl
+                                           	if	xorl != 0
+                                           	xorlw	xorl
+                                           	endif
+                                           	bne	waitw#v(_waitk)
+                                           _waitk	set	_waitk+1
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  WAITUNTIL (declares a high-speed WAIT-UNTIL loop)
+                                           ;
+                                           ;  Syntax:
+                                           ;
+                                           ;  		waituntil	addr,andl,xorl
+                                           ;
+                                           ;  The WAITUNTIL macro creates a tight loop that reads the byte
+                                           ;  in address addr, ANDs it with the literal andl, then XORs the
+                                           ;  result with the literal xorl.  If the result is TRUE (non-zero),
+                                           ;  control exits the macro.  If the result is FALSE (zero),
+                                           ;  the loop repeats.
+                                           ;
+                                           ;  This macro destroys the W register.  It does not modify addr.
+                                           ;
+                                           
+                                           
+                                           waituntil	macro	addr,andl,xorl
+                                           waitw#v(_waitk)
+                                           	movf	addr,w
+                                           	andlw	andl
+                                           	if	xorl != 0
+                                           	xorlw	xorl
+                                           	endif
+                                           	beq	waitw#v(_waitk)
+                                           _waitk	set	_waitk+1
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  POLL (starts a POLL-ENDPOLL structure)
+                                           ;
+                                           ;  Syntax:
+                                           ;
+                                           ;  		poll	addr,andl,xorl
+                                           ;
+                                           ;  The POLL macro reads the byte in address addr, ANDs it with
+                                           ;  the literal andl, then XORs the result with the literal xorl.
+                                           ;  If the result is TRUE (non-zero), control passes to the code
+                                           ;  immediately following the macro.  If the result is FALSE
+                                           ;  (zero), control jumps to the corresponding ENDPOLL macro.
+                                           ;
+                                           ;  For example, the following POLL command will test the address
+                                           ;  SPORT for bit 3 high:
+                                           ;
+                                           ;	poll	SPORT,8,0		test bit 3
+                                           ;	nop				do this if bit 3 is high
+                                           ;	endpoll
+                                           ;
+                                           ;  The following POLL command will test the address SPORT for
+                                           ;  bit 3 high while either bits 2 or 1 are low:
+                                           ;
+                                           ;	poll	SPORT,0x0e,0x06		test bits 1-3
+                                           ;	nop				do if 3 is high, 1 or 2 is low
+                                           ;	endpoll
+                                           ;
+                                           ;  This macro destroys the W register.  It does not modify addr.
+                                           ;
+                                           
+                                           
+                                           poll	macro	addr,andl,xorl
+                                           _pollt	set	_pollt+1
+                                           _pollk	set	_pollt
+                                           	movf	addr,w
+                                           	andlw	andl
+                                           	xorlw	xorl
+                                           	beq	poll#v(_pollk)
+                                           	endm
+                                           
+                                           
+                                           ;
+                                           ;  ENDPOLL (marks end of a POLL-ENDPOLL structure)
+                                           ;
+                                           ;  The ENDPOLL macro terminates a POLL-ENDPOLL structure.
+                                           ;  Control reaches this macro if the associated POLL macro
+                                           ;  fails.
+                                           ;
+                                           
+                                           endpoll	macro
+                                           poll#v(_pollk)
+                                           _pollk	set	_pollk-1
+                                           
+                                           
+                                           	;; ****************************************
+                                           	;; SEB'S LEGENDARY ADDITIONS
+                                           	;; ****************************************
+                                           
+                                           
+                                           endm
+                                           end

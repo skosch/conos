@@ -1,0 +1,72 @@
+LIST R=hex
+INCLUDE "p16f877.inc"
+
+__CONFIG _CP_OFF & _DEBUG_OFF &  _CPD_OFF & _LVP_OFF & _BODEN_OFF & _PWRTE_ON & _WDT_OFF & _XT_OSC
+
+#include <lcd.inc>
+#include <macros.asm>
+#include <fcall.asm>
+	
+	;; VARIABLE ALIAS DECLARATIONS ;; ******************************
+
+org 0	;reset vector
+	
+.UDATA
+interrupt_temp	equ 0x21
+count		equ 0x22
+
+
+goto Mainline
+
+
+	;; ########################################
+	;; INTERRUPT HANDLER
+	;; ########################################
+org 4
+IHR
+	movwf	interrupt_temp ;store W while handling interrupt
+	incf	count, f       ;increment count
+	movlw	.10	       ;
+	subwf	count,w	       ;subtract 10 from count
+	btfss	STATUS,0       ;check the carry flag. It will be set if count>=w after subwf.
+	goto	carry_on       ;if count<10, keep going
+	goto	clear	       ;if count>=10, we need to reset it.
+carry_on
+	bcf	INTCON,INTF    ;clear interrupt flag
+	movfw	interrupt_temp ;put the original value back into W	
+	RETFIE
+
+
+clear
+	clrf	count 		;set count back to 0
+	bcf	INTCON,INTF 	;clear interrupt flag
+	RETFIE
+
+
+
+
+
+
+	
+	;; ########################################
+	;; MAINLINE LOOP
+	;; ########################################
+Mainline
+	;; Enable Interrupts
+	bsf 	INTCON, GIE	;Global interrupt enable
+	bsf 	INTCON, INTE	;RB0 interrupt enable
+	bcf 	INTCON, INTF	;reset interrupt flag
+	bsf 	STATUS, RP0	;switch to bank 1
+	movlw 	1		;
+	movwf 	TRISB		;make RB0 an input
+	movlw	0x10		;
+	movwf	TRISA		;make the first 4 pins on A outputs
+	bcf	STATUS, RP0	;come back to bank 0
+
+loop
+	movf	count,w
+	movwf	PORTA ;move count into Port A
+	goto	loop
+
+	
+end
