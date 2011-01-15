@@ -1,0 +1,411 @@
+<!DOCTYPE UI><UI version="3.3" stdsetdef="1">
+<class>preferenceswidgetbase</class>
+<widget class="QDialog">
+    <property name="name">
+        <cstring>preferenceswidgetbase</cstring>
+    </property>
+    <property name="geometry">
+        <rect>
+            <x>0</x>
+            <y>0</y>
+            <width>360</width>
+            <height>360</height>
+        </rect>
+    </property>
+    <property name="minimumSize">
+        <size>
+            <width>360</width>
+            <height>360</height>
+        </size>
+    </property>
+    <property name="maximumSize">
+        <size>
+            <width>360</width>
+            <height>360</height>
+        </size>
+    </property>
+    <property name="paletteBackgroundColor">
+        <color>
+            <red>209</red>
+            <green>210</green>
+            <blue>212</blue>
+        </color>
+    </property>
+    <property name="caption">
+        <string>Preferences</string>
+    </property>
+    <widget class="QFrame">
+        <property name="name">
+            <cstring>frame6_2</cstring>
+        </property>
+        <property name="enabled">
+            <bool>true</bool>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>10</x>
+                <y>20</y>
+                <width>340</width>
+                <height>100</height>
+            </rect>
+        </property>
+        <property name="paletteBackgroundColor">
+            <color>
+                <red>255</red>
+                <green>247</green>
+                <blue>244</blue>
+            </color>
+        </property>
+        <property name="frameShape">
+            <enum>StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+            <enum>Raised</enum>
+        </property>
+        <widget class="QLabel">
+            <property name="name">
+                <cstring>textLabel1_2</cstring>
+            </property>
+            <property name="enabled">
+                <bool>true</bool>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>10</x>
+                    <y>10</y>
+                    <width>140</width>
+                    <height>16</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>On Startup perform:</string>
+            </property>
+        </widget>
+        <widget class="QCheckBox">
+            <property name="name">
+                <cstring>checkBox7_2</cstring>
+            </property>
+            <property name="enabled">
+                <bool>false</bool>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>50</x>
+                    <y>70</y>
+                    <width>280</width>
+                    <height>21</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>&amp;Auto-find microprocessor (EXPERIMENTAL)</string>
+            </property>
+            <property name="accel">
+                <string>Alt+A</string>
+            </property>
+        </widget>
+        <widget class="QCheckBox">
+            <property name="name">
+                <cstring>haltMicroChkbox</cstring>
+            </property>
+            <property name="enabled">
+                <bool>true</bool>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>50</x>
+                    <y>50</y>
+                    <width>260</width>
+                    <height>21</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>Halt microprocessor (E&amp;XPERIMENTAL)</string>
+            </property>
+            <property name="accel">
+                <string>Alt+X</string>
+            </property>
+        </widget>
+        <widget class="QCheckBox">
+            <property name="name">
+                <cstring>restoreLastMicroChkbox</cstring>
+            </property>
+            <property name="enabled">
+                <bool>true</bool>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>30</x>
+                    <y>30</y>
+                    <width>260</width>
+                    <height>21</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>Restore Last Selected Microprocessor</string>
+            </property>
+            <property name="accel">
+                <string></string>
+            </property>
+        </widget>
+    </widget>
+    <widget class="QFrame">
+        <property name="name">
+            <cstring>frame6</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>10</x>
+                <y>130</y>
+                <width>340</width>
+                <height>80</height>
+            </rect>
+        </property>
+        <property name="paletteBackgroundColor">
+            <color>
+                <red>255</red>
+                <green>247</green>
+                <blue>244</blue>
+            </color>
+        </property>
+        <property name="frameShape">
+            <enum>StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+            <enum>Raised</enum>
+        </property>
+        <widget class="QLabel">
+            <property name="name">
+                <cstring>textLabel1</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>10</x>
+                    <y>10</y>
+                    <width>140</width>
+                    <height>16</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>When "Running" use:</string>
+            </property>
+        </widget>
+        <widget class="QCheckBox">
+            <property name="name">
+                <cstring>dashArrChkbox</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>30</x>
+                    <y>50</y>
+                    <width>201</width>
+                    <height>21</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>-R (Deassert /MCLR)</string>
+            </property>
+            <property name="accel">
+                <string></string>
+            </property>
+        </widget>
+        <widget class="QCheckBox">
+            <property name="name">
+                <cstring>dashTeeChkbox</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>30</x>
+                    <y>30</y>
+                    <width>240</width>
+                    <height>21</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>-T (Power Target after operations)</string>
+            </property>
+            <property name="accel">
+                <string></string>
+            </property>
+        </widget>
+    </widget>
+    <widget class="QFrame">
+        <property name="name">
+            <cstring>frame6_2_2</cstring>
+        </property>
+        <property name="enabled">
+            <bool>true</bool>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>10</x>
+                <y>220</y>
+                <width>340</width>
+                <height>80</height>
+            </rect>
+        </property>
+        <property name="paletteBackgroundColor">
+            <color>
+                <red>255</red>
+                <green>247</green>
+                <blue>244</blue>
+            </color>
+        </property>
+        <property name="frameShape">
+            <enum>StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+            <enum>Raised</enum>
+        </property>
+        <widget class="QLabel">
+            <property name="name">
+                <cstring>textLabel1_2_2</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>10</x>
+                    <y>10</y>
+                    <width>140</width>
+                    <height>16</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>When programming:</string>
+            </property>
+        </widget>
+        <widget class="QCheckBox">
+            <property name="name">
+                <cstring>programmingVerifyChkbox</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>30</x>
+                    <y>50</y>
+                    <width>290</width>
+                    <height>21</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>Automatically perform verify operation</string>
+            </property>
+            <property name="accel">
+                <string></string>
+            </property>
+        </widget>
+        <widget class="QCheckBox">
+            <property name="name">
+                <cstring>programmingEraseChkbox</cstring>
+            </property>
+            <property name="geometry">
+                <rect>
+                    <x>30</x>
+                    <y>30</y>
+                    <width>250</width>
+                    <height>21</height>
+                </rect>
+            </property>
+            <property name="text">
+                <string>Automaticall&amp;y erase microprocessor</string>
+            </property>
+            <property name="accel">
+                <string>Alt+Y</string>
+            </property>
+        </widget>
+    </widget>
+    <widget class="QPushButton">
+        <property name="name">
+            <cstring>cancelBtn</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>10</x>
+                <y>320</y>
+                <width>91</width>
+                <height>30</height>
+            </rect>
+        </property>
+        <property name="text">
+            <string>Ca&amp;ncel</string>
+        </property>
+    </widget>
+    <widget class="QPushButton">
+        <property name="name">
+            <cstring>saveBtn</cstring>
+        </property>
+        <property name="geometry">
+            <rect>
+                <x>270</x>
+                <y>320</y>
+                <width>81</width>
+                <height>31</height>
+            </rect>
+        </property>
+        <property name="text">
+            <string>Save</string>
+        </property>
+        <property name="accel">
+            <string></string>
+        </property>
+    </widget>
+</widget>
+<connections>
+    <connection>
+        <sender>cancelBtn</sender>
+        <signal>clicked()</signal>
+        <receiver>preferenceswidgetbase</receiver>
+        <slot>cancelButton()</slot>
+    </connection>
+    <connection>
+        <sender>saveBtn</sender>
+        <signal>pressed()</signal>
+        <receiver>preferenceswidgetbase</receiver>
+        <slot>saveButton()</slot>
+    </connection>
+    <connection>
+        <sender>dashArrChkbox</sender>
+        <signal>toggled(bool)</signal>
+        <receiver>preferenceswidgetbase</receiver>
+        <slot>dashArrCheckBox(bool)</slot>
+    </connection>
+    <connection>
+        <sender>dashTeeChkbox</sender>
+        <signal>toggled(bool)</signal>
+        <receiver>preferenceswidgetbase</receiver>
+        <slot>dashTeeCheckbox(bool)</slot>
+    </connection>
+    <connection>
+        <sender>restoreLastMicroChkbox</sender>
+        <signal>toggled(bool)</signal>
+        <receiver>preferenceswidgetbase</receiver>
+        <slot>restoreLastMicroCheckbox(bool)</slot>
+    </connection>
+    <connection>
+        <sender>haltMicroChkbox</sender>
+        <signal>toggled(bool)</signal>
+        <receiver>preferenceswidgetbase</receiver>
+        <slot>haltMicroCheckbox(bool)</slot>
+    </connection>
+    <connection>
+        <sender>programmingEraseChkbox</sender>
+        <signal>toggled(bool)</signal>
+        <receiver>preferenceswidgetbase</receiver>
+        <slot>programmingEraseCheckbox(bool)</slot>
+    </connection>
+    <connection>
+        <sender>programmingVerifyChkbox</sender>
+        <signal>toggled(bool)</signal>
+        <receiver>preferenceswidgetbase</receiver>
+        <slot>programmingVerifyCheckbox(bool)</slot>
+    </connection>
+</connections>
+<slots>
+    <slot>cancelButton()</slot>
+    <slot>saveButton()</slot>
+    <slot>dashTeeCheckbox(bool check)</slot>
+    <slot>dashArrCheckBox(bool check)</slot>
+    <slot>restoreLastMicroCheckbox(bool check)</slot>
+    <slot>haltMicroCheckbox(bool check)</slot>
+    <slot>programmingEraseCheckbox(bool check)</slot>
+    <slot>programmingVerifyCheckbox(bool check)</slot>
+</slots>
+<layoutdefaults spacing="6" margin="11"/>
+</UI>

@@ -1,0 +1,93 @@
+; ICD2W2K.INF for Windows 2000 and XP
+;
+; 03 Jan 2005 : new group
+
+;---- Class Info ------------------------------------------------------------
+
+[ClassInstall32]
+CopyFiles=DLLDestDir,DLLDestDirB
+AddReg=MicrochipClass
+
+[MicrochipClass]
+HKR,,,,"MicrochipTools"
+HKR,,EnumPropPages32,,"MCDRV48F.DLL,MCINSTLSProp"
+HKR,,Icon,,"0"
+
+;---- Common ----------------------------------------------------------------
+
+[Version]
+Signature="$Chicago$"
+Class=MicrochipTools
+ClassGUID={DEB97E2C-8B0F-446F-B280-7CFAC41C3BD9}
+Provider=%Microchip%
+DriverVer=05/28/2002,1.0.0.0
+
+[Manufacturer]
+%Microchip%=Microchip
+
+[Microchip]
+; This device is bound to the client driver for the loaded MPLAB ICD 2.
+%USB\VID_04D8&PID_8001.DeviceDesc%=MCUSBICD2.Dev, USB\VID_04D8&PID_8001
+
+[PreCopySection]
+HKR,,NoSetupUI,,1
+
+[DestinationDirs]
+MCUSBICD2.Files.Ext = 10,System32\Drivers
+MCUSBICD2.Files.Inf = 10,INF
+DLLDestDir=10
+DLLDestDirB=11
+
+[SourceDisksFiles]
+icd2w2k.inf=1
+icd2w2k.sys=1
+MCDRV48F.DLL=1
+
+[SourceDisksNames]
+1=%gid%
+
+[DLLDestDir]
+MCDRV48F.DLL
+
+[DLLDestDirB]
+MCDRV48F.DLL
+
+;---- Client Driver Items -------------------------------------------------
+
+[MCUSBICD2.Dev]
+CopyFiles=MCUSBICD2.Files.Ext, MCUSBICD2.Files.Inf
+AddReg=MCUSBICD2.AddReg
+
+[MCUSBICD2.Dev.NT]
+; Copyfiles commented out for Win2K to avoid user intervention during install
+CopyFiles=MCUSBICD2.Files.Ext, MCUSBICD2.Files.Inf
+AddReg=MCUSBICD2.AddReg
+
+[MCUSBICD2.Dev.NT.Services]
+Addservice = MCUSBICD2, 0x00000002, MCUSBICD2.AddService
+
+[MCUSBICD2.AddService]
+DisplayName    = %MCUSBICD2.SvcDesc%
+ServiceType    = 1                  ; SERVICE_KERNEL_DRIVER
+StartType      = 2                  ; SERVICE_AUTO_START
+ErrorControl   = 1                  ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %10%\System32\Drivers\icd2w2k.sys
+LoadOrderGroup = Base
+
+[MCUSBICD2.AddReg]
+HKR,,DevLoader,,*ntkern
+HKR,,NTMPDriver,,icd2w2k.sys
+
+[MCUSBICD2.Files.Ext]
+icd2w2k.sys
+
+[MCUSBICD2.Files.Inf]
+icd2w2k.inf
+
+;---- Strings -------------------------------------------------------------
+
+[Strings]
+Microchip="Microchip Technology, Inc."
+USB\VID_04D8&PID_8001.DeviceDesc="Microchip MPLAB ICD 2 Firmware Client"
+MCUSBICD2.SvcDesc="Microchip MPLAB ICD 2 Firmware Client Driver (ICD2W2K.SYS)"
+gid="ICD2W2K Windows 2000/XP Installation Disk"

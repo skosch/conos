@@ -1,209 +1,273 @@
 gplink-0.13.7 beta
 Copyright (c) 1998-2005 gputils project
-Listing File Generated: 1-12-2011  22:33:03
+Listing File Generated: 1-14-2011  21:57:02
  
  
 Address  Value    Disassembly              Source
 -------  -----    -----------              ------
+                                           list P=18F4620, F=INHX32, C=160, N=80, ST=OFF, MM=OFF, R=DEC
                                            
-                                           list R=hex
-                                           list p=16f877
-                                           
-                                           #include "p16f877.inc"
+                                           #include <p18f4620.inc>
                                                    LIST
-                                           ; P16F877.INC  Standard Header File, Version 1.00    Microchip Technology, Inc.
+                                           
+                                           ;==========================================================================
+                                           ;  MPASM PIC18F4620 processor include
+                                           ; 
+                                           ;  (c) Copyright 1999-2007 Microchip Technology, All rights reserved
+                                           ;==========================================================================
+                                           
                                                    NOLIST
-                                           ;#include "macros.asm"		
+                                           #include <lcd18.inc>
+                                           	extern	InitLCD,WrtLCD,ClrLCD,ClkLCD
+                                           
+                                           
+                                           ;;;;;;Configuration Bits;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                                           
+                                           		CONFIG OSC=HS, FCMEN=OFF, IESO=OFF
+                                           		CONFIG PWRT = OFF, BOREN = SBORDIS, BORV = 3
+                                           		CONFIG WDT = OFF, WDTPS = 32768
+                                           		CONFIG MCLRE = ON, LPT1OSC = OFF, PBADEN = OFF, CCP2MX = PORTC
+                                           		CONFIG STVREN = ON, LVP = OFF, XINST = OFF
+                                           		CONFIG DEBUG = OFF
+                                           		CONFIG CP0 = OFF, CP1 = OFF, CP2 = OFF, CP3 = OFF
+                                           		CONFIG CPB = OFF, CPD = OFF
+                                           		CONFIG WRT0 = OFF, WRT1 = OFF, WRT2 = OFF, WRT3 = OFF
+                                           		CONFIG WRTB = OFF, WRTC = OFF, WRTD = OFF
+                                           		CONFIG EBTR0 = OFF, EBTR1 = OFF, EBTR2 = OFF, EBTR3 = OFF
+                                           		CONFIG EBTRB = OFF
+                                           
+                                           
+                                           	udata
+                                           state	res 1
+                                           
+                                           ;;;;;;Vectors;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+                                           	org		0x0000
+                                           	
+                                           	
+000000   ef17     goto	0x2e                	goto	Init
+000002   f000
+                                           	
+                                           	org		0x08				;high priority ISR
+000008   ef0d     goto	0x1a                	goto IHR
+00000a   f000
+                                           
+                                           	org		0x18				;low priority ISR
+000018   0010     retfie	0                 	retfie
+                                           
+                                           	code
+                                           
+                                           IHR
+00001a   3881     swapf	0x81, 0, 0         	swapf	PORTB,W		;read PortB<7:4> into W<3:0>
+00001c   0b0f     andlw	0xf                	andlw	0x0F		;mask the lower nibble
+00001e   44e8     rlncf	0xe8, 0, 0         	rlncf	WREG, W		;program memory counts up by two
+000020   ec28     call	0x50, 0             	call	KPHexToChar
+000022   f000
+000024   ec68     call	0xd0, 0             	call	WrtLCD		;write to LCD
+000026   f000
+000028   5281     movf	0x81, 0x1, 0        	movf	PORTB, f
+00002a   90f0     bcf	0xf0, 0, 0           	bcf	INTCON3, INT1IF	;clear RB1 interrupt bit
                                            
                                            	
-                                           __CONFIG _CP_OFF & _DEBUG_OFF &  _CPD_OFF & _LVP_OFF & _BODEN_OFF & _PWRTE_ON & _WDT_OFF & _XT_OSC
-                                           
-                                           #include "lcd.inc"
-                                           	extern	InitLCD,WR_INS,WR_DATA,ClrLCD
-                                           
-                                           
+00002c   0010     retfie	0                 	retfie
                                            	
-                                           	;; VARIABLE ALIAS DECLARATIONS ;; ******************************
+                                           Init
+00002e   6af2     clrf	0xf2, 0             	clrf	INTCON		; no interrupts
+000030   6a92     clrf	0x92, 0             	clrf	TRISA		; PORTA is output
+000032   0ef2     movlw	0xf2               	movlw	b'11110010'	; Keypad inputs on Port B
+000034   6e93     movwf	0x93, 0            	movwf	TRISB
+000036   6a94     clrf	0x94, 0             	clrf	TRISC
+000038   6a95     clrf	0x95, 0             	clrf	TRISD
                                            
-                                           org 0	;reset vector
+00003a   6a89     clrf	0x89, 0             	clrf	LATA
+00003c   6a8a     clrf	0x8a, 0             	clrf	LATB
+00003e   6a8b     clrf	0x8b, 0             	clrf	LATC
+000040   6a8c     clrf	0x8c, 0             	clrf	LATD
                                            
-000000   2801     goto	0x1                 goto 	init
-                                           code	;; CODE GOES HERE: INITIALIZATION
-                                           	;; all port a,c,d output, some inputs on b
-                                           	;; clear all portabcd
-                                           	;; call InitLCD
-                                           init
-000001   018b     clrf	0xb                          clrf      INTCON         ; No interrupts
-000002   1683     bsf	0x3, 0x5                      bsf       STATUS,RP0     ; select bank 1
-000003   0185     clrf	0x5                          clrf      TRISA          ; All port A is output
-000004   30f2     movlw	0xf2                        movlw     b'11110010'    ; Set required keypad inputs
-000005   0086     movwf	0x6                         movwf     TRISB
-000006   0187     clrf	0x7                          clrf      TRISC          ; All port C is output
-000007   0188     clrf	0x8                          clrf      TRISD          ; All port D is output
+000042   ec3c     call	0x78, 0             	call	InitLCD		; Initializes the LCD
+000044   f000
+000046   86f0     bsf	0xf0, 0x3, 0         	bsf	INTCON3, INT1IE
+000048   8af1     bsf	0xf1, 0x5, 0         	bsf	INTCON2, INTEDG1 ; enable RB1 interrupts
+00004a   8ef2     bsf	0xf2, 0x7, 0         	bsf	INTCON, GIE
                                            
-000008   1283     bcf	0x3, 0x5                      bcf       STATUS,RP0     ; select bank 0
-000009   0185     clrf	0x5                          clrf      PORTA
-00000a   0186     clrf	0x6                          clrf      PORTB
-00000b   0187     clrf	0x7                          clrf      PORTC
-00000c   0188     clrf	0x8                          clrf      PORTD
-                                                     
-00000d   2028     call	0x28                         call	InitLCD    ;Initialize the LCD (code in lcd.asm; imported by lcd.inc)
                                            
-                                           test
-00000e   1c86     btfss	0x6, 0x1           	btfss	PORTB,1     ;Wait until data is available from the keypad
-00000f   280e     goto	0xe                         goto		$-1 
-                                           
-000010   0e06     swapf	0x6, w                     swapf		PORTB,W     ;Read PortB<7:4> into W<3:0>
-000011   390f     andlw	0xf                        andlw		0x0F
-000012   2017     call	0x17                        call     KPHexToChar ;Convert keypad value to LCD character (value is still held in W)
-000013   204c     call	0x4c                        call     WR_DATA      ;Write the value in W to LCD
-                                           
-000014   1886     btfsc	0x6, 0x1                   btfsc		PORTB,1     ;Wait until key is released
-000015   2814     goto	0x14                        goto		$-1
-000016   280e     goto	0xe                         goto     test
-                                           
+00004c   ef3a     goto	0x74                	goto	Mainline
+00004e   f000
+                                           	
                                            
                                            KPHexToChar
-000017   0782     addwf	0x2, f             	addwf	PCL,f
-000018   3431     retlw	0x31               	dt	"123A456B789C*0#D"
-000019   3432     retlw	0x32               
-00001a   3433     retlw	0x33               
-00001b   3441     retlw	0x41               
-00001c   3434     retlw	0x34               
-00001d   3435     retlw	0x35               
-00001e   3436     retlw	0x36               
-00001f   3442     retlw	0x42               
-000020   3437     retlw	0x37               
-000021   3438     retlw	0x38               
-000022   3439     retlw	0x39               
-000023   3443     retlw	0x43               
-000024   342a     retlw	0x2a               
-000025   3430     retlw	0x30               
-000026   3423     retlw	0x23               
-000027   3444     retlw	0x44               
+000050   26f9     addwf	0xf9, 0x1, 0       	addwf	PCL,f
+000052   0c31     retlw	0x31               	dt	"123A456B789C*0#D"
+000054   0c32     retlw	0x32               
+000056   0c33     retlw	0x33               
+000058   0c41     retlw	0x41               
+00005a   0c34     retlw	0x34               
+00005c   0c35     retlw	0x35               
+00005e   0c36     retlw	0x36               
+000060   0c42     retlw	0x42               
+000062   0c37     retlw	0x37               
+000064   0c38     retlw	0x38               
+000066   0c39     retlw	0x39               
+000068   0c43     retlw	0x43               
+00006a   0c2a     retlw	0x2a               
+00006c   0c30     retlw	0x30               
+00006e   0c23     retlw	0x23               
+000070   0c44     retlw	0x44               
+000072   0012     return	0                 	return
+                                           
+                                           Mainline
+                                           
+000074   ef3a     goto	0x74                	goto	$
+000076   f000
                                            	
                                            end
-                                           	#include <p16f877.inc>
+                                           #include <p18f4620.inc>
                                                    LIST
-                                           ; P16F877.INC  Standard Header File, Version 1.00    Microchip Technology, Inc.
+                                           
+                                           ;==========================================================================
+                                           ;  MPASM PIC18F4620 processor include
+                                           ; 
+                                           ;  (c) Copyright 1999-2007 Microchip Technology, All rights reserved
+                                           ;==========================================================================
+                                           
                                                    NOLIST
                                            	
                                            	;Declare unbanked variables (at 0x70 and on)
-                                           	udata_shr
+                                           	udata
                                            lcd_tmp	res	1
                                            lcd_d1	res	1
                                            lcd_d2	res	1
-                                           com		res	1
-                                           dat		res	1
                                            
                                            	;Declare constants for pin assignments (LCD on PORTD)
-                                           #define	RS 	PORTD,2
-                                           #define	E 	PORTD,3
+                                           RS 	equ 2
+                                           E 	equ 3
                                            
-                                           ;Delay: ~160us
+                                           	;Helper macros
+                                           WRT_LCD macro val
+0000aa   0e28     movlw	0x28               	movlw   val
+0000ac   ec68     call	0xd0, 0             	call    WrtLCD
+0000ae   f000
+                                           	endm
+                                           	
+                                           ;Delay: ~44us
                                            LCD_DELAY macro
-00005f   30ff     movlw	0xff               	movlw   0xFF
-000060   00f1     movwf	0x71               	movwf   lcd_d1
-000061   0bf1     decfsz	0x71, f           	decfsz  lcd_d1,f
-000062   2861     goto	0x61                	goto    $-1
+0000fa   0e23     movlw	0x23               	movlw   0x23
+0000fc   6f82     movwf	0x82, 0x1          	movwf   lcd_d1
+0000fe   2f82     decfsz	0x82, 0x1, 0x1    	decfsz  lcd_d1,f
+000100   ef7f     goto	0xfe                	goto    $-2
+000102   f000
                                            	endm
                                            	
                                            
-                                           	code 
-                                           	global InitLCD,WR_INS,WR_DATA,ClrLCD		;Only these functions are visible to other asm files.
+                                           	code
+                                           	global InitLCD,WrtLCD,ClkLCD,ClrLCD		;Only these functions are visible to other asm files.
                                                ;***********************************
                                            InitLCD
-000028   1283     bcf	0x3, 0x5             	bcf STATUS,RP0
-000029   1588     bsf	0x8, 0x3             	bsf E     ;E default high
+                                           
+                                           	;bsf PORTD,E     ;E default high
                                            	
                                            	;Wait for LCD POR to finish (~15ms)
-00002a   205d     call	0x5d                	call lcdLongDelay
-00002b   205d     call	0x5d                	call lcdLongDelay
-00002c   205d     call	0x5d                	call lcdLongDelay
+000078   ec88     call	0x110, 0            	call lcdLongDelay
+00007a   f000
+00007c   ec88     call	0x110, 0            	call lcdLongDelay
+00007e   f000
+000080   ec88     call	0x110, 0            	call lcdLongDelay
+000082   f000
                                            
                                            	;Ensure 8-bit mode first (no way to immediately guarantee 4-bit mode)
                                            	; -> Send b'0011' 3 times
-00002d   3033     movlw	0x33               	movlw	b'00110011'
-00002e   203d     call	0x3d                	call	WR_INS
-00002f   3032     movlw	0x32               	movlw	b'00110010'
-000030   203d     call	0x3d                	call	WR_INS
+000084   9483     bcf	0x83, 0x2, 0             bcf     PORTD,RS       ;Instruction mode
+000086   0e30     movlw	0x30               	movlw   B'00110000'
+000088   ec83     call	0x106, 0            	call    MovMSB
+00008a   f000
+00008c   ec7a     call	0xf4, 0             	call    ClkLCD         ;Finish last 4-bit send (if reset occurred in middle of a send)
+00008e   f000
+000090   ec7a     call	0xf4, 0             	call    ClkLCD         ;Assuming 4-bit mode, set 8-bit mode
+000092   f000
+000094   ec88     call	0x110, 0            	call    lcdLongDelay   ;->max instruction time ~= 5ms
+000096   f000
+000098   ec7a     call	0xf4, 0             	call    ClkLCD         ;(note: if it's in 8-bit mode already, it will stay in 8-bit mode)
+00009a   f000
                                            
-                                           	; 4 bits, 2 lines, 5x7 dots
-000031   3028     movlw	0x28               	movlw	b'00101000'
-000032   203d     call	0x3d                	call	WR_INS
-                                           
-                                           	; display on/off
-000033   300c     movlw	0xc                	movlw	b'00001100'
-000034   203d     call	0x3d                	call	WR_INS
-                                           	
-                                           	; Entry mode
-000035   3006     movlw	0x6                	movlw	b'00000110'
-000036   203d     call	0x3d                	call	WR_INS
-                                           
-                                           	; Clear ram
-000037   3001     movlw	0x1                	movlw	b'00000001'
-000038   203d     call	0x3d                	call	WR_INS
-000039   0008     return                   	return
+                                               ;Now that we know for sure it's in 8-bit mode, set 4-bit mode.
+00009c   0e20     movlw	0x20               	movlw B'00100000'
+00009e   ec83     call	0x106, 0            	call MovMSB
+0000a0   f000
+0000a2   ec7a     call	0xf4, 0             	call ClkLCD
+0000a4   f000
+0000a6   ec88     call	0x110, 0            	call    lcdLongDelay   ;->max instruction time ~= 5ms
+0000a8   f000
+                                           	;Give LCD init instructions
+                                           	WRT_LCD B'00101000' ; 4 bits, 2 lines,5X8 dot
+0000b0   ec88     call	0x110, 0            	call    lcdLongDelay   ;->max instruction time ~= 5ms
+0000b2   f000
+                                           	WRT_LCD B'00001111' ; display on,cursor,blink
+0000ba   ec88     call	0x110, 0            	call    lcdLongDelay   ;->max instruction time ~= 5ms
+0000bc   f000
+                                           	WRT_LCD B'00000110' ; Increment,no shift
+0000c4   ec88     call	0x110, 0            	call    lcdLongDelay   ;->max instruction time ~= 5ms
+0000c6   f000
+                                           	;Ready to display characters
+0000c8   ec73     call	0xe6, 0             	call    ClrLCD
+0000ca   f000
+0000cc   8483     bsf	0x83, 0x2, 0             bsf     PORTD,RS    ;Character mode
+0000ce   0012     return	0                 	return
                                                ;************************************
+                                           
+                                           	;WrtLCD: Clock MSB and LSB of W to PORTD<7:4> in two cycles
+                                           WrtLCD
+0000d0   6f81     movwf	0x81, 0x1          	movwf   lcd_tmp ; store original value
+0000d2   ec83     call	0x106, 0            	call    MovMSB  ; move MSB to PORTD
+0000d4   f000
+0000d6   ec7a     call	0xf4, 0             	call    ClkLCD
+0000d8   f000
+0000da   3981     swapf	0x81, 0, 0x1       	swapf   lcd_tmp,w ; Swap LSB of value into MSB of W
+0000dc   ec83     call	0x106, 0                call    MovMSB    ; move to PORTD
+0000de   f000
+0000e0   ec7a     call	0xf4, 0                 call    ClkLCD
+0000e2   f000
+                                           
+0000e4   0012     return	0                     return
                                            
                                                ;ClrLCD: Clear the LCD display
                                            ClrLCD
-00003a   3001     movlw	0x1                	movlw	B'00000001'
-00003b   203d     call	0x3d                	call	WR_INS
-00003c   0008     return                       return
+0000e6   9483     bcf	0x83, 0x2, 0             bcf     PORTD,RS       ;Instruction mode
+                                               WRT_LCD b'00000001'
+0000ee   ec88     call	0x110, 0                call    lcdLongDelay
+0000f0   f000
+0000f2   0012     return	0                     return
+                                           
+                                               ;ClkLCD: Pulse the E line low
+                                           ClkLCD
+                                               ;LCD_DELAY
+0000f4   8683     bsf	0x83, 0x3, 0             bsf PORTD,E
+0000f6   0000     nop                          nop
+                                           	;LCD_DELAY   ; __    __
+0000f8   9683     bcf	0x83, 0x3, 0             bcf PORTD,E ;   |__|
+                                           	LCD_DELAY
+000104   0012     return	0                     return
                                            
                                                ;****************************************
-                                               ; Write command to LCD - Input : W , output : -
-                                               ;****************************************
-                                           WR_INS
-00003d   1108     bcf	0x8, 0x2             	bcf		RS				;clear RS
-00003e   00f3     movwf	0x73               	movwf	com				;W --> com
-00003f   39f0     andlw	0xf0               	andlw	0xF0			;mask 4 bits MSB w = X0
-000040   0088     movwf	0x8                	movwf	PORTD			;Send 4 bits MSB
-000041   1588     bsf	0x8, 0x3             	bsf		E				;
-000042   205d     call	0x5d                	call	lcdLongDelay	;__    __
-000043   1188     bcf	0x8, 0x3             	bcf		E				;  |__|
-000044   0e73     swapf	0x73, w            	swapf	com,w
-000045   39f0     andlw	0xf0               	andlw	0xF0			;1111 0010
-000046   0088     movwf	0x8                	movwf	PORTD			;send 4 bits LSB
-000047   1588     bsf	0x8, 0x3             	bsf		E				;
-000048   205d     call	0x5d                	call	lcdLongDelay	;__    __
-000049   1188     bcf	0x8, 0x3             	bcf		E				;  |__|
-00004a   205d     call	0x5d                	call	lcdLongDelay
-00004b   0008     return                   	return
                                            
-                                               ;****************************************
-                                               ; Write data to LCD - Input : W , output : -
-                                               ;****************************************
-                                           WR_DATA
-00004c   1508     bsf	0x8, 0x2             	bsf		RS				
-00004d   00f4     movwf	0x74               	movwf	dat
-00004e   0874     movf	0x74, w             	movf	dat,w
-00004f   39f0     andlw	0xf0               	andlw	0xF0		
-000050   3e04     addlw	0x4                	addlw	4
-000051   0088     movwf	0x8                	movwf	PORTD		
-000052   1588     bsf	0x8, 0x3             	bsf		E				;
-000053   205d     call	0x5d                	call	lcdLongDelay	;__    __
-000054   1188     bcf	0x8, 0x3             	bcf		E				;  |__|
-000055   0e74     swapf	0x74, w            	swapf	dat,w
-000056   39f0     andlw	0xf0               	andlw	0xF0		
-000057   3e04     addlw	0x4                	addlw	4
-000058   0088     movwf	0x8                	movwf	PORTD		
-000059   1588     bsf	0x8, 0x3             	bsf		E				;
-00005a   205d     call	0x5d                	call	lcdLongDelay	;__    __
-00005b   1188     bcf	0x8, 0x3             	bcf		E				;  |__|
-00005c   0008     return                   	return
+                                               ;MovMSB: Move MSB of W to PORTD, without disturbing LSB
+                                           MovMSB
+000106   0bf0     andlw	0xf0                   andlw 0xF0
+000108   1283     iorwf	0x83, 0x1, 0           iorwf PORTD,f
+00010a   090f     iorlw	0xf                    iorlw 0x0F
+00010c   1683     andwf	0x83, 0x1, 0           andwf PORTD,f
+00010e   0012     return	0                     return
                                            
+                                               ;Delay: ~5ms
                                            lcdLongDelay
-00005d   3014     movlw	0x14                   movlw d'20'
-00005e   00f2     movwf	0x72                   movwf lcd_d2
+000110   0e50     movlw	0x50                   movlw d'80'
+000112   6f83     movwf	0x83, 0x1              movwf lcd_d2
                                            LLD_LOOP
                                                LCD_DELAY
-000063   0bf2     decfsz	0x72, f               decfsz lcd_d2,f
-000064   285f     goto	0x5f                    goto LLD_LOOP
-000065   0008     return                       return
+00011e   2f83     decfsz	0x83, 0x1, 0x1        decfsz lcd_d2,f
+000120   ef8a     goto	0x114                   goto LLD_LOOP
+000122   f000
+000124   0012     return	0                     return
                                                
-                                           end
+                                               end
                                            ;
                                            ;  PIC macro library
                                            ;  Developed by Karl Lunt, May 1999

@@ -1,4 +1,4 @@
-gpasm-0.13.7 beta               lcd.asm     1-12-2011  22:33:03          PAGE  1
+gpasm-0.13.7 beta               lcd.asm     1-14-2011  17:59:18          PAGE  1
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -18,8 +18,8 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                00009 dat             res     1
                00010 
                00011         ;Declare constants for pin assignments (LCD on PORTD)
-0005 00012 #define RS      PORTD,2
-0005 00013 #define E       PORTD,3
+000A 00012 #define RS      PORTD,2
+000A 00013 #define E       PORTD,3
                00014 
                00015 ;Delay: ~160us
                00016 LCD_DELAY macro
@@ -34,113 +34,113 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                00025         global InitLCD,WR_INS,WR_DATA,ClrLCD            ;Only these functions are visible to other asm files.
                00026     ;***********************************
 0000 00027 InitLCD
-0000 1283      00028         bcf STATUS,RP0
-0001 1588      00029         bsf E     ;E default high
+0000 9A03      00028         bcf STATUS,RP0
+0002 8608      00029         bsf E     ;E default high
                00030         
                00031         ;Wait for LCD POR to finish (~15ms)
-0002 2000      00032         call lcdLongDelay
-0003 2000      00033         call lcdLongDelay
-0004 2000      00034         call lcdLongDelay
+0004 EC00 F000 00032         call lcdLongDelay
+0008 EC00 F000 00033         call lcdLongDelay
+000C EC00 F000 00034         call lcdLongDelay
                00035 
                00036         ;Ensure 8-bit mode first (no way to immediately guarantee 4-bit mode)
                00037         ; -> Send b'0011' 3 times
-0005 3033      00038         movlw   b'00110011'
-0006 2000      00039         call    WR_INS
-0007 3032      00040         movlw   b'00110010'
-0008 2000      00041         call    WR_INS
+0010 0E33      00038         movlw   b'00110011'
+0012 EC00 F000 00039         call    WR_INS
+0016 0E32      00040         movlw   b'00110010'
+0018 EC00 F000 00041         call    WR_INS
                00042 
                00043         ; 4 bits, 2 lines, 5x7 dots
-0009 3028      00044         movlw   b'00101000'
-000A 2000      00045         call    WR_INS
+001C 0E28      00044         movlw   b'00101000'
+001E EC00 F000 00045         call    WR_INS
                00046 
                00047         ; display on/off
-000B 300C      00048         movlw   b'00001100'
-000C 2000      00049         call    WR_INS
+0022 0E0C      00048         movlw   b'00001100'
+0024 EC00 F000 00049         call    WR_INS
                00050         
                00051         ; Entry mode
-gpasm-0.13.7 beta               lcd.asm     1-12-2011  22:33:03          PAGE  2
+gpasm-0.13.7 beta               lcd.asm     1-14-2011  17:59:18          PAGE  2
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
  
-000D 3006      00052         movlw   b'00000110'
-000E 2000      00053         call    WR_INS
+0028 0E06      00052         movlw   b'00000110'
+002A EC00 F000 00053         call    WR_INS
                00054 
                00055         ; Clear ram
-000F 3001      00056         movlw   b'00000001'
-0010 2000      00057         call    WR_INS
-0011 0008      00058         return
+002E 0E01      00056         movlw   b'00000001'
+0030 EC00 F000 00057         call    WR_INS
+0034 0012      00058         return
                00059     ;************************************
                00060 
                00061     ;ClrLCD: Clear the LCD display
-0012 00062 ClrLCD
-0012 3001      00063         movlw   B'00000001'
-0013 2000      00064         call    WR_INS
-0014 0008      00065     return
+0036 00062 ClrLCD
+0036 0E01      00063         movlw   B'00000001'
+0038 EC00 F000 00064         call    WR_INS
+003C 0012      00065     return
                00066 
                00067     ;****************************************
                00068     ; Write command to LCD - Input : W , output : -
                00069     ;****************************************
-0015 00070 WR_INS
-0015 1108      00071         bcf             RS                              ;clear RS
-0016 0080      00072         movwf   com                             ;W --> com
-0017 39F0      00073         andlw   0xF0                    ;mask 4 bits MSB w = X0
-0018 0088      00074         movwf   PORTD                   ;Send 4 bits MSB
-0019 1588      00075         bsf             E                               ;
-001A 2000      00076         call    lcdLongDelay    ;__    __
-001B 1188      00077         bcf             E                               ;  |__|
-001C 0E00      00078         swapf   com,w
-001D 39F0      00079         andlw   0xF0                    ;1111 0010
-001E 0088      00080         movwf   PORTD                   ;send 4 bits LSB
-001F 1588      00081         bsf             E                               ;
-0020 2000      00082         call    lcdLongDelay    ;__    __
-0021 1188      00083         bcf             E                               ;  |__|
-0022 2000      00084         call    lcdLongDelay
-0023 0008      00085         return
+003E 00070 WR_INS
+003E 9408      00071         bcf             RS                              ;clear RS
+0040 6E00      00072         movwf   com                             ;W --> com
+0042 0BF0      00073         andlw   0xF0                    ;mask 4 bits MSB w = X0
+0044 6E08      00074         movwf   PORTD                   ;Send 4 bits MSB
+0046 8608      00075         bsf             E                               ;
+0048 EC00 F000 00076         call    lcdLongDelay    ;__    __
+004C 9608      00077         bcf             E                               ;  |__|
+004E 3800      00078         swapf   com,w
+0050 0BF0      00079         andlw   0xF0                    ;1111 0010
+0052 6E08      00080         movwf   PORTD                   ;send 4 bits LSB
+0054 8608      00081         bsf             E                               ;
+0056 EC00 F000 00082         call    lcdLongDelay    ;__    __
+005A 9608      00083         bcf             E                               ;  |__|
+005C EC00 F000 00084         call    lcdLongDelay
+0060 0012      00085         return
                00086 
                00087     ;****************************************
                00088     ; Write data to LCD - Input : W , output : -
                00089     ;****************************************
-0024 00090 WR_DATA
-0024 1508      00091         bsf             RS                              
-0025 0080      00092         movwf   dat
-0026 0800      00093         movf    dat,w
-0027 39F0      00094         andlw   0xF0            
-0028 3E04      00095         addlw   4
-0029 0088      00096         movwf   PORTD           
-002A 1588      00097         bsf             E                               ;
-002B 2000      00098         call    lcdLongDelay    ;__    __
-002C 1188      00099         bcf             E                               ;  |__|
-002D 0E00      00100         swapf   dat,w
-002E 39F0      00101         andlw   0xF0            
-002F 3E04      00102         addlw   4
-0030 0088      00103         movwf   PORTD           
-0031 1588      00104         bsf             E                               ;
-0032 2000      00105         call    lcdLongDelay    ;__    __
-gpasm-0.13.7 beta               lcd.asm     1-12-2011  22:33:03          PAGE  3
+0062 00090 WR_DATA
+0062 8408      00091         bsf             RS                              
+0064 6E00      00092         movwf   dat
+0066 5000      00093         movf    dat,w
+0068 0BF0      00094         andlw   0xF0            
+006A 0F04      00095         addlw   4
+006C 6E08      00096         movwf   PORTD           
+006E 8608      00097         bsf             E                               ;
+0070 EC00 F000 00098         call    lcdLongDelay    ;__    __
+0074 9608      00099         bcf             E                               ;  |__|
+0076 3800      00100         swapf   dat,w
+0078 0BF0      00101         andlw   0xF0            
+007A 0F04      00102         addlw   4
+007C 6E08      00103         movwf   PORTD           
+007E 8608      00104         bsf             E                               ;
+0080 EC00 F000 00105         call    lcdLongDelay    ;__    __
+gpasm-0.13.7 beta               lcd.asm     1-14-2011  17:59:18          PAGE  3
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
  
-0033 1188      00106         bcf             E                               ;  |__|
-0034 0008      00107         return
+0084 9608      00106         bcf             E                               ;  |__|
+0086 0012      00107         return
                00108 
-0035 00109 lcdLongDelay
-0035 3014      00110     movlw d'20'
-0036 0080      00111     movwf lcd_d2
-0037 00112 LLD_LOOP
+0088 00109 lcdLongDelay
+0088 0E14      00110     movlw d'20'
+008A 6E00      00111     movwf lcd_d2
+008C 00112 LLD_LOOP
                00113     LCD_DELAY
-0037 30FF          M         movlw   0xFF
-0038 0080          M         movwf   lcd_d1
-0039 0B80          M         decfsz  lcd_d1,f
-003A 2800          M         goto    $-1
-003B 0B80      00114     decfsz lcd_d2,f
-003C 2800      00115     goto LLD_LOOP
-003D 0008      00116     return
+008C 0EFF          M         movlw   0xFF
+008E 6E00          M         movwf   lcd_d1
+0090 2E00          M         decfsz  lcd_d1,f
+0092 EF00 F000     M         goto    $-1
+0096 2E00      00114     decfsz lcd_d2,f
+0098 EF00 F000 00115     goto LLD_LOOP
+009C 0012      00116     return
                00117     
-gpasm-0.13.7 beta               lcd.asm     1-12-2011  22:33:03          PAGE  4
+gpasm-0.13.7 beta               lcd.asm     1-14-2011  17:59:18          PAGE  4
 
 
 SYMBOL TABLE
@@ -194,12 +194,12 @@ CKE                               00000006
 CKP                               00000004
 CREN                              00000004
 CSRC                              00000007
-ClrLCD                            00000012
+ClrLCD                            00000036
 D                                 00000005
 DATA_ADDRESS                      00000005
 DC                                00000001
 D_A                               00000005
-gpasm-0.13.7 beta               lcd.asm     1-12-2011  22:33:03          PAGE  5
+gpasm-0.13.7 beta               lcd.asm     1-14-2011  17:59:18          PAGE  5
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -234,7 +234,7 @@ INTEDG                            00000006
 INTF                              00000001
 IRP                               00000007
 InitLCD                           00000000
-LLD_LOOP                          00000037
+LLD_LOOP                          0000008C
 NOT_A                             00000005
 NOT_ADDRESS                       00000005
 NOT_BO                            00000000
@@ -259,7 +259,7 @@ PCFG2                             00000002
 PCFG3                             00000003
 PCL                               00000002
 PCLATH                            0000000A
-gpasm-0.13.7 beta               lcd.asm     1-12-2011  22:33:03          PAGE  6
+gpasm-0.13.7 beta               lcd.asm     1-14-2011  17:59:18          PAGE  6
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -319,7 +319,7 @@ SSPIE                             00000003
 SSPIF                             00000003
 SSPM0                             00000000
 SSPM1                             00000001
-gpasm-0.13.7 beta               lcd.asm     1-12-2011  22:33:03          PAGE  7
+gpasm-0.13.7 beta               lcd.asm     1-14-2011  17:59:18          PAGE  7
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -379,7 +379,7 @@ TXREG                             00000019
 TXSTA                             00000098
 UA                                00000001
 W                                 00000000
-gpasm-0.13.7 beta               lcd.asm     1-12-2011  22:33:03          PAGE  8
+gpasm-0.13.7 beta               lcd.asm     1-14-2011  17:59:18          PAGE  8
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -389,10 +389,11 @@ WCOL                              00000007
 WR                                00000001
 WREN                              00000002
 WRERR                             00000003
-WR_DATA                           00000024
-WR_INS                            00000015
+WR_DATA                           00000062
+WR_INS                            0000003E
 Z                                 00000002
-_.code_00003a                     0000003A
+_.code_000092                     00000092
+_.code_000094                     00000094
 _BODEN_OFF                        00003FBF
 _BODEN_ON                         00003FFF
 _CPD_OFF                          00003FFF
@@ -415,10 +416,10 @@ _WDT_ON                           00003FFF
 _WRT_ENABLE_OFF                   00003DFF
 _WRT_ENABLE_ON                    00003FFF
 _XT_OSC                           00003FFD
-__16F877                          00000001
+__18F2550                         00000001
 com                               00000003
 dat                               00000004
-lcdLongDelay                      00000035
+lcdLongDelay                      00000088
 lcd_d1                            00000001
 lcd_d2                            00000002
 lcd_tmp                           00000000
@@ -428,5 +429,5 @@ RS                                PORTD,2
 
 Errors   :       0
 Warnings :       0 reported,       0 suppressed
-Messages :       0 reported,       0 suppressed
+Messages :       0 reported,       1 suppressed
 

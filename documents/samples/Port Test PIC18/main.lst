@@ -1,0 +1,271 @@
+gpasm-0.13.7 beta               main.asm    1-14-2011  18:26:09          PAGE  1
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+ 
+               00001 ;Port Tester for PIC184620
+               00002 ;Sequentially turns on all pins that have debug lights on the DevBugger board
+               00003 #include <p18f4620.inc>
+               00001         LIST
+               00002 
+               00003 ;==========================================================================
+               00004 ;  MPASM PIC18F4620 processor include
+               00005 ; 
+               00006 ;  (c) Copyright 1999-2007 Microchip Technology, All rights reserved
+               00007 ;==========================================================================
+               00008 
+Message [301] : Processor-header file mismatch.  Verify selected processor.
+               01331         LIST
+Warning [215] : Processor superseded by command line.
+               00004                 list P=18F4620, F=INHX32, C=160, N=80, ST=OFF, MM=OFF, R=DEC
+               00005 
+               00006 ;;;;;;Configuration Bits;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+               00007 
+Error [176] : CONFIG Directive Error:  (setting not found for selected processor)
+300000 0500    00008                 CONFIG OSC=HS, FCMEN=OFF, IESO=OFF
+Error [176] : CONFIG Directive Error:  (setting not found for selected processor)
+               00009                 CONFIG PWRT = OFF, BOREN = SBORDIS, BORV = 3
+300002 1E1F    00010                 CONFIG WDT = OFF, WDTPS = 32768
+Error [176] : CONFIG Directive Error:  (specified value not valid for directive)
+300004 81FF    00011                 CONFIG MCLRE = ON, LPT1OSC = OFF, PBADEN = OFF, CCP2MX = PORTC
+300006 FF81    00012                 CONFIG STVREN = ON, LVP = OFF, XINST = OFF
+300006 FF81    00013                 CONFIG DEBUG = OFF
+               00014                 CONFIG CP0 = OFF, CP1 = OFF, CP2 = OFF, CP3 = OFF
+300008 C00F    00015                 CONFIG CPB = OFF, CPD = OFF
+               00016                 CONFIG WRT0 = OFF, WRT1 = OFF, WRT2 = OFF, WRT3 = OFF
+30000A E00F    00017                 CONFIG WRTB = OFF, WRTC = OFF, WRTD = OFF
+               00018                 CONFIG EBTR0 = OFF, EBTR1 = OFF, EBTR2 = OFF, EBTR3 = OFF
+30000C 400F    00019                 CONFIG EBTRB = OFF
+               00020 
+               00021 ;;;;;;Variables;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+               00022 
+               00023       cblock   0x70
+               00024          d1
+               00025          d2
+               00026       endc
+               00027 
+               00028 ;;;;;;Macros;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+               00029 
+               00030 ROTATE   macro    PORT
+               00031          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+               00032          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+               00033          call     delay       ;Delay for a bit so we can actually see it
+               00034          endm
+               00035 
+               00036 
+               00037 
+0000           00038       org 0x00
+0000 6AF2      00039          clrf     INTCON         ;Turn off interrupts
+0002 6A92      00040          clrf     TRISA          ; All ports are completely output
+0004 6A93      00041          clrf     TRISB
+0006 6A94      00042          clrf     TRISC
+0008 6A95      00043          clrf     TRISD
+000A 6A96      00044          clrf     TRISE
+000C 0E0F      00045          movlw    0x0F           ;Turn off A/D conversion
+000E 6EC1      00046          movwf    ADCON1     
+               00047          
+               00048          ;Initialize all ports to 0
+0010 6A89      00049          clrf     LATA
+0012 6A8A      00050          clrf     LATB
+0014 6A8B      00051          clrf     LATC
+0016 6A8C      00052          clrf     LATD
+0018 6A8D      00053          clrf     LATE
+               00054          
+001A 0E01      00055 begin    movlw    d'1'     ;Start PORTE as 0b00000001
+001C 6E8D      00056          movwf    LATE
+001E EC94 F000 00057          call     delay
+               00058          ROTATE   LATE    ;PORTE = 0b00000010
+0022 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+gpasm-0.13.7 beta               main.asm    1-14-2011  18:26:09          PAGE  2
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+ 
+0024 468D          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+0026 EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+002A 6A8D      00059          clrf     LATE    ;PORTE = 0
+               00060          
+002C 0E01      00061          movlw    d'1'
+002E 6E89      00062          movwf    LATA    ;PORTA = 0b00000001
+0030 EC94 F000 00063          call     delay
+               00064          ROTATE   LATA    ;PORTA = b'00000010'
+0034 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+0036 4689          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+0038 EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00065          ROTATE   LATA    ;PORTA = b'00000100'
+003C 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+003E 4689          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+0040 EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00066          ROTATE   LATA    ;PORTA = b'00001000'
+0044 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+0046 4689          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+0048 EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00067          ROTATE   LATA    ;PORTA = b'00010000'
+004C 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+004E 4689          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+0050 EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00068          ROTATE   LATA    ;PORTA = b'00100000;
+0054 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+0056 4689          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+0058 EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+005C 6A89      00069          clrf     LATA    ;PORTA = 0
+               00070          
+005E 0E01      00071          movlw    d'1'
+0060 6E8A      00072          movwf    LATB
+0062 EC94 F000 00073          call     delay
+               00074          ROTATE   LATB
+0066 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+0068 468A          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+006A EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00075          ROTATE   LATB
+006E 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+0070 468A          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+0072 EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00076          ROTATE   LATB
+0076 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+0078 468A          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+007A EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00077          ROTATE   LATB
+007E 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+0080 468A          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+0082 EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00078          ROTATE   LATB
+0086 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+0088 468A          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+008A EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00079          ROTATE   LATB
+008E 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+0090 468A          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+0092 EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00080          ROTATE   LATB
+0096 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+0098 468A          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+009A EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+009E 6A8A      00081          clrf     LATB
+               00082          
+gpasm-0.13.7 beta               main.asm    1-14-2011  18:26:09          PAGE  3
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+ 
+00A0 0E01      00083          movlw    d'1'
+00A2 6E8B      00084          movwf    LATC
+00A4 EC94 F000 00085          call     delay
+               00086          ROTATE   LATC
+00A8 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+00AA 468B          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+00AC EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00087          ROTATE   LATC
+00B0 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+00B2 468B          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+00B4 EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00088          ROTATE   LATC
+00B8 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+00BA 468B          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+00BC EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00089          ROTATE   LATC
+00C0 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+00C2 468B          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+00C4 EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00090          ROTATE   LATC
+00C8 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+00CA 468B          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+00CC EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00091          ROTATE   LATC
+00D0 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+00D2 468B          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+00D4 EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00092          ROTATE   LATC
+00D8 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+00DA 468B          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+00DC EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+00E0 6A8B      00093          clrf     LATC
+               00094          
+00E2 0E01      00095          movlw    d'1'
+00E4 6E8C      00096          movwf    LATD
+00E6 EC94 F000 00097          call     delay
+               00098          ROTATE   LATD
+00EA 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+00EC 468C          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+00EE EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00099          ROTATE   LATD
+00F2 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+00F4 468C          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+00F6 EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00100          ROTATE   LATD
+00FA 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+00FC 468C          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+00FE EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00101          ROTATE   LATD
+0102 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+0104 468C          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+0106 EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00102          ROTATE   LATD
+010A 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+010C 468C          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+010E EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00103          ROTATE   LATD
+0112 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+0114 468C          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+0116 EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+               00104          ROTATE   LATD
+gpasm-0.13.7 beta               main.asm    1-14-2011  18:26:09          PAGE  4
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+ 
+011A 90D8          M          bcf      STATUS,C    ;Clear the Carry bit so it isn't rotated into PORT
+Message [305] : Using default destination of 1 (file).
+011C 468C          M          rlncf    PORT        ;Rotate PORT to the left (bitshift)
+011E EC94 F000     M          call     delay       ;Delay for a bit so we can actually see it
+0122 6A8C      00105          clrf     LATD
+               00106          
+0124 EF0D F000 00107          goto     begin
+               00108 
+               00109          ;DELAY FUNCTION
+0128 00110 delay    ;Executes loop 65536 times, with approx. 3 instructions per loop (decf=1, goto=2).
+0128 6B70      00111                  clrf     d1
+012A 6B71      00112                  clrf     d2             
+012C 2F70      00113 delay1   decfsz   d1, 1 ;Count from 255 to 0 (we rely on overflow to reset the counter)
+012E EF96 F000 00114          goto     $-2   ;Note: each instruction is 2 bytes long, so to go to the previous instruction, $-2 is needed
+               00115         ;goto     delay1        - Alternatively, could use label
+0132 2F71      00116                  decfsz   d2, 1
+0134 EF96 F000 00117          goto     $-8   ;NOTE: each goto instruction is 2 words long (4 bytes) so $-8 is needed to go to label delay1
+               00118                 ;goto     delay1         
+0138 0012      00119                  return
+
+
+Errors   :       3
+Warnings :       1 reported,       0 suppressed
+Messages :      28 reported,       0 suppressed
+

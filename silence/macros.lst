@@ -1,4 +1,4 @@
-gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  1
+gpasm-0.13.7 beta               macros.asm  1-14-2011  21:57:02          PAGE  1
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -58,7 +58,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                00052 ;
                00053 ;  Define the BEQ (branch-if-equal)
                00054 ;
-gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  2
+gpasm-0.13.7 beta               macros.asm  1-14-2011  21:57:02          PAGE  2
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -118,7 +118,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                00106         movlw   begl
                00107         movwf   var
                00108 _for#v(_forknt)
-gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  3
+gpasm-0.13.7 beta               macros.asm  1-14-2011  21:57:02          PAGE  3
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -178,7 +178,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                00160 ;  argument is:
                00161 ;  var is a RAM variable that is the index of the FOR-NEXT loop.
                00162 ;
-gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  4
+gpasm-0.13.7 beta               macros.asm  1-14-2011  21:57:02          PAGE  4
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -238,7 +238,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                00214 nextl   macro   var,incl
                00215 _nxtknt set     _nxtknt-1
                00216         movf    var,w
-gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  5
+gpasm-0.13.7 beta               macros.asm  1-14-2011  21:57:02          PAGE  5
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -298,7 +298,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                00268 ;  return to the start of the REPEAT macro if the loop is
                00269 ;  terminated with an UNTILEQ or UNTILNE macro.
                00270 ;
-gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  6
+gpasm-0.13.7 beta               macros.asm  1-14-2011  21:57:02          PAGE  6
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -358,7 +358,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                00322 ;  UNTILNE (conditionally returns to corresponding REPEAT macro)
                00323 ;
                00324 ;  Syntax:
-gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  7
+gpasm-0.13.7 beta               macros.asm  1-14-2011  21:57:02          PAGE  7
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -418,7 +418,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                00376 ;  a matching ENDSELECT macro or MPASM will report errors.
                00377 ;
                00378 ;  This macro does not alter the W register.
-gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  8
+gpasm-0.13.7 beta               macros.asm  1-14-2011  21:57:02          PAGE  8
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -478,7 +478,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                00430 
                00431 casef   macro   var
                00432 _castot set     _castot+1
-gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE  9
+gpasm-0.13.7 beta               macros.asm  1-14-2011  21:57:02          PAGE  9
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -538,7 +538,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                00484         movf    addr,w
                00485         andlw   andl
                00486         if      xorl != 0
-gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE 10
+gpasm-0.13.7 beta               macros.asm  1-14-2011  21:57:02          PAGE 10
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -598,7 +598,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                00538 ;
                00539 ;       poll    SPORT,8,0               test bit 3
                00540 ;       nop                             do this if bit 3 is high
-gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE 11
+gpasm-0.13.7 beta               macros.asm  1-14-2011  21:57:02          PAGE 11
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -646,13 +646,13 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                00580 
                00581 
                00582 endm
-gpasm-0.13.7 beta               macros.asm  1-12-2011  22:33:03          PAGE 12
+gpasm-0.13.7 beta               macros.asm  1-14-2011  21:57:02          PAGE 12
 
 
 SYMBOL TABLE
   LABEL                             VALUE 
 
-__16F877                          00000001
+__18F4620                         00000001
 _alwknt                           00000000
 _casknt                           00000000
 _castot                           00000000
