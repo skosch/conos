@@ -1,4 +1,4 @@
-gpasm-0.13.7 beta               lcd18.asm   1-14-2011  21:57:02          PAGE  1
+gpasm-0.13.7 beta               lcd18.asm   1-15-2011  13:06:53          PAGE  1
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -41,7 +41,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                00026         
                00027 
                00028         code
-               00029         global InitLCD,WrtLCD,ClkLCD,ClrLCD             ;Only these functions are visible to other asm files.
+               00029         global InitLCD,WrtLCD,ClkLCD,ClrLCD,PosLCD              ;Only these functions are visible to other asm files.
                00030     ;***********************************
 0000 00031 InitLCD
                00032 
@@ -58,7 +58,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 000E 0E30      00043         movlw   B'00110000'
 0010 EC00 F000 00044         call    MovMSB
 0014 EC00 F000 00045         call    ClkLCD         ;Finish last 4-bit send (if reset occurred in middle of a send)
-gpasm-0.13.7 beta               lcd18.asm   1-14-2011  21:57:02          PAGE  2
+gpasm-0.13.7 beta               lcd18.asm   1-15-2011  13:06:53          PAGE  2
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -118,7 +118,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 007C 8683      00089     bsf PORTD,E
 007E 0000      00090     nop
                00091         ;LCD_DELAY   ; __    __
-gpasm-0.13.7 beta               lcd18.asm   1-14-2011  21:57:02          PAGE  3
+gpasm-0.13.7 beta               lcd18.asm   1-15-2011  13:06:53          PAGE  3
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -132,31 +132,39 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 0088 EF00 F000     M         goto    $-2
 008C 0012      00094     return
                00095 
-               00096     ;****************************************
-               00097 
-               00098     ;MovMSB: Move MSB of W to PORTD, without disturbing LSB
-008E 00099 MovMSB
-008E 0BF0      00100     andlw 0xF0
-0090 1283      00101     iorwf PORTD,f
-0092 090F      00102     iorlw 0x0F
-0094 1683      00103     andwf PORTD,f
-0096 0012      00104     return
+               00096     ;position the cursor at position W. If W=b'010000000', skips to new line
+008E 00097 PosLCD
+               00098     ;****************************************
+008E 0000      00099     nop
+0090 9483      00100     bcf PORTD, RS               ;sets command mode
+0092 0B80      00101     andlw b'10000000'           ;add 1000 0000
+0094 EC00 F000 00102     call WrtLCD                 ;send to LCD
+0098 8483      00103     bsf PORTD, RS
+               00104     
                00105 
-               00106     ;Delay: ~5ms
-0098 00107 lcdLongDelay
-0098 0E50      00108     movlw d'80'
-009A 6E00      00109     movwf lcd_d2
-009C 00110 LLD_LOOP
-               00111     LCD_DELAY
-009C 0E23          M         movlw   0x23
-009E 6E00          M         movwf   lcd_d1
-00A0 2E00          M         decfsz  lcd_d1,f
-00A2 EF00 F000     M         goto    $-2
-00A6 2E00      00112     decfsz lcd_d2,f
-00A8 EF00 F000 00113     goto LLD_LOOP
-00AC 0012      00114     return
-               00115     
-gpasm-0.13.7 beta               lcd18.asm   1-14-2011  21:57:02          PAGE  4
+               00106     ;MovMSB: Move MSB of W to PORTD, without disturbing LSB
+009A 00107 MovMSB
+009A 0BF0      00108     andlw 0xF0
+009C 1283      00109     iorwf PORTD,f
+009E 090F      00110     iorlw 0x0F
+00A0 1683      00111     andwf PORTD,f
+00A2 0012      00112     return
+               00113 
+               00114     ;Delay: ~5ms
+00A4 00115 lcdLongDelay
+00A4 0E50      00116     movlw d'80'
+00A6 6E00      00117     movwf lcd_d2
+00A8 00118 LLD_LOOP
+               00119     LCD_DELAY
+00A8 0E23          M         movlw   0x23
+00AA 6E00          M         movwf   lcd_d1
+00AC 2E00          M         decfsz  lcd_d1,f
+00AE EF00 F000     M         goto    $-2
+00B2 2E00      00120     decfsz lcd_d2,f
+00B4 EF00 F000 00121     goto LLD_LOOP
+00B8 0012      00122     return
+               00123     
+gpasm-0.13.7 beta               lcd18.asm   1-15-2011  13:06:53          PAGE  4
 
 
 SYMBOL TABLE
@@ -215,7 +223,7 @@ C1OUT                             00000006
 C2INV                             00000005
 C2OUT                             00000007
 CCP1                              00000002
-gpasm-0.13.7 beta               lcd18.asm   1-14-2011  21:57:02          PAGE  5
+gpasm-0.13.7 beta               lcd18.asm   1-15-2011  13:06:53          PAGE  5
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -275,7 +283,7 @@ CVR3                              00000003
 CVRCON                            00000FB5
 CVREN                             00000007
 CVROE                             00000006
-gpasm-0.13.7 beta               lcd18.asm   1-14-2011  21:57:02          PAGE  6
+gpasm-0.13.7 beta               lcd18.asm   1-15-2011  13:06:53          PAGE  6
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -335,7 +343,7 @@ HLVDIN                            00000005
 HLVDIP                            00000002
 HLVDL0                            00000000
 HLVDL1                            00000001
-gpasm-0.13.7 beta               lcd18.asm   1-14-2011  21:57:02          PAGE  7
+gpasm-0.13.7 beta               lcd18.asm   1-15-2011  13:06:53          PAGE  7
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -395,7 +403,7 @@ LATA1                             00000001
 LATA2                             00000002
 LATA3                             00000003
 LATA4                             00000004
-gpasm-0.13.7 beta               lcd18.asm   1-14-2011  21:57:02          PAGE  8
+gpasm-0.13.7 beta               lcd18.asm   1-15-2011  13:06:53          PAGE  8
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -435,7 +443,7 @@ LATE                              00000F8D
 LATE0                             00000000
 LATE1                             00000001
 LATE2                             00000002
-LLD_LOOP                          0000009C
+LLD_LOOP                          000000A8
 LVDCON                            00000FD2
 LVDEN                             00000004
 LVDIE                             00000002
@@ -451,11 +459,11 @@ LVV1                              00000001
 LVV2                              00000002
 LVV3                              00000003
 MCLR                              00000003
-MovMSB                            0000008E
+MovMSB                            0000009A
 N                                 00000004
 NOT_A                             00000005
 NOT_ADDRESS                       00000005
-gpasm-0.13.7 beta               lcd18.asm   1-14-2011  21:57:02          PAGE  9
+gpasm-0.13.7 beta               lcd18.asm   1-15-2011  13:06:53          PAGE  9
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -515,7 +523,7 @@ PGD                               00000007
 PGM                               00000005
 PIE1                              00000F9D
 PIE2                              00000FA0
-gpasm-0.13.7 beta               lcd18.asm   1-14-2011  21:57:02          PAGE 10
+gpasm-0.13.7 beta               lcd18.asm   1-15-2011  13:06:53          PAGE 10
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -565,6 +573,7 @@ PSSAC1                            00000003
 PSSBD0                            00000000
 PSSBD1                            00000001
 PWM1CON                           00000FB7
+PosLCD                            0000008E
 R                                 00000002
 RA0                               00000000
 RA1                               00000001
@@ -574,13 +583,13 @@ RA4                               00000004
 RA5                               00000005
 RA6                               00000006
 RA7                               00000007
-RB0                               00000000
-gpasm-0.13.7 beta               lcd18.asm   1-14-2011  21:57:02          PAGE 11
+gpasm-0.13.7 beta               lcd18.asm   1-15-2011  13:06:53          PAGE 11
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
  
+RB0                               00000000
 RB1                               00000001
 RB2                               00000002
 RB3                               00000003
@@ -634,13 +643,13 @@ R_W                               00000002
 S                                 00000003
 SBOREN                            00000006
 SCK                               00000003
-SCKP                              00000004
-gpasm-0.13.7 beta               lcd18.asm   1-14-2011  21:57:02          PAGE 12
+gpasm-0.13.7 beta               lcd18.asm   1-15-2011  13:06:53          PAGE 12
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
  
+SCKP                              00000004
 SCL                               00000003
 SCS0                              00000000
 SCS1                              00000001
@@ -694,13 +703,13 @@ T0CON                             00000FD5
 T0CS                              00000005
 T0IE                              00000005
 T0IF                              00000002
-T0PS0                             00000000
-gpasm-0.13.7 beta               lcd18.asm   1-14-2011  21:57:02          PAGE 13
+gpasm-0.13.7 beta               lcd18.asm   1-15-2011  13:06:53          PAGE 13
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
  
+T0PS0                             00000000
 T0PS1                             00000001
 T0PS2                             00000002
 T0SE                              00000004
@@ -754,13 +763,13 @@ TMR3CS                            00000001
 TMR3H                             00000FB3
 TMR3IE                            00000001
 TMR3IF                            00000001
-TMR3IP                            00000001
-gpasm-0.13.7 beta               lcd18.asm   1-14-2011  21:57:02          PAGE 14
+gpasm-0.13.7 beta               lcd18.asm   1-15-2011  13:06:53          PAGE 14
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
  
+TMR3IP                            00000001
 TMR3L                             00000FB2
 TMR3ON                            00000000
 TO                                00000003
@@ -814,13 +823,13 @@ TUN1                              00000001
 TUN2                              00000002
 TUN3                              00000003
 TUN4                              00000004
-TX                                00000006
-gpasm-0.13.7 beta               lcd18.asm   1-14-2011  21:57:02          PAGE 15
+gpasm-0.13.7 beta               lcd18.asm   1-15-2011  13:06:53          PAGE 15
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
  
+TX                                00000006
 TX9                               00000006
 TX9D                              00000000
 TXCKP                             00000004
@@ -847,8 +856,8 @@ WrtLCD                            00000058
 Z                                 00000002
 _.code_000088                     00000088
 _.code_00008a                     0000008A
-_.code_0000a2                     000000A2
-_.code_0000a4                     000000A4
+_.code_0000ae                     000000AE
+_.code_0000b0                     000000B0
 _BOREN_NOSLP_2L                   000000FD
 _BOREN_OFF_2L                     000000F9
 _BOREN_ON_2L                      000000FB
@@ -874,13 +883,13 @@ _CP0_OFF_5L                       000000FF
 _CP0_ON_5L                        000000FE
 _CP1_OFF_5L                       000000FF
 _CP1_ON_5L                        000000FD
-_CP2_OFF_5L                       000000FF
-gpasm-0.13.7 beta               lcd18.asm   1-14-2011  21:57:02          PAGE 16
+gpasm-0.13.7 beta               lcd18.asm   1-15-2011  13:06:53          PAGE 16
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
  
+_CP2_OFF_5L                       000000FF
 _CP2_ON_5L                        000000FB
 _CP3_OFF_5L                       000000FF
 _CP3_ON_5L                        000000F7
@@ -934,13 +943,13 @@ _PBADEN_OFF_3H                    000000FD
 _PBADEN_ON_3H                     000000FF
 _PWRT_OFF_2L                      000000FF
 _PWRT_ON_2L                       000000FE
-_STVREN_OFF_4L                    000000FE
-gpasm-0.13.7 beta               lcd18.asm   1-14-2011  21:57:02          PAGE 17
+gpasm-0.13.7 beta               lcd18.asm   1-15-2011  13:06:53          PAGE 17
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
  
+_STVREN_OFF_4L                    000000FE
 _STVREN_ON_4L                     000000FF
 _WDTPS_1024_2H                    000000F5
 _WDTPS_128_2H                     000000EF
@@ -977,7 +986,7 @@ _WRTD_ON_6H                       0000007F
 _XINST_OFF_4L                     000000BF
 _XINST_ON_4L                      000000FF
 __18F4620                         00000001
-lcdLongDelay                      00000098
+lcdLongDelay                      000000A4
 lcd_d1                            00000001
 lcd_d2                            00000002
 lcd_tmp                           00000000

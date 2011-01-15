@@ -359,7 +359,8 @@ _untknt	set	_untknt-1
 ;  This macro does not alter the W register.
 ;
 
-select	macro
+select	macro variable
+	movf variable, w
 _seltot	set	_seltot+1
 _selknt	set	_seltot
 	endm

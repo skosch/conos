@@ -26,7 +26,7 @@ LCD_DELAY macro
 	
 
 	code
-	global InitLCD,WrtLCD,ClkLCD,ClrLCD		;Only these functions are visible to other asm files.
+	global InitLCD,WrtLCD,ClkLCD,ClrLCD,PosLCD		;Only these functions are visible to other asm files.
     ;***********************************
 InitLCD
 
@@ -93,7 +93,15 @@ ClkLCD
 	LCD_DELAY
     return
 
+    ;position the cursor at position W. If W=b'010000000', skips to new line
+PosLCD
     ;****************************************
+    nop
+    bcf	PORTD, RS		;sets command mode
+    andlw b'10000000'		;add 1000 0000
+    call WrtLCD			;send to LCD
+    bsf PORTD, RS
+    
 
     ;MovMSB: Move MSB of W to PORTD, without disturbing LSB
 MovMSB
@@ -113,4 +121,4 @@ LLD_LOOP
     goto LLD_LOOP
     return
     
-    end
+end
