@@ -4,7 +4,7 @@ list P=18F4620, F=INHX32, C=160, N=80, ST=OFF, MM=OFF, R=DEC
 #include <macros.inc>
 #include <lcd18.inc>
 
-THIS IS THA CRAZY BRANCH BRANCH!
+
 ;;;;;;Configuration Bits;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 		CONFIG OSC=HS, FCMEN=OFF, IESO=OFF
