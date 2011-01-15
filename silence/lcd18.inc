@@ -1,1 +1,1 @@
-	extern	InitLCD,WrtLCD,ClrLCD,ClkLCD,PosLCD
+	extern	InitLCD,WrtLCD,ClrLCD,ClkLCD,CmdLCD
