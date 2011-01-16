@@ -114,26 +114,9 @@ NextChar_1
 
 	movlw	0xC0		;position cursor at second line. 0x80 + 0x40 = 0xC0
 	call	CmdLCD
-	
-	movlw	upper LCDTbl_2
-	movwf	TBLPTRU
-	movlw	high LCDTbl_2
-	movwf	TBLPTRH
-	
-	movff	state, tmp1
-	movlw	16
-	mulwf	tmp1		;now tmp1 = state * 16
-	movf	tmp1,w 
 
-	movlw	low LCDTbl_2
-	addwf	tmp1, W		;add the key offset*16 to the lower end of the table
-	
-	movwf	TBLPTRL
-	movlw	0
-	addwfc	TBLPTRH, F	;let the carry ripple up if we went too far
-	addwfc	TBLPTRU, F
-	tblrd	*		;read that thing into the latch
-	movf	TABLAT, W	;put it into W
+	tblrd	+*
+	movf	TABLAT,W
 	
 NextChar_2
 	call	WrtLCD		;loop through the table entry until 0 is hit
@@ -161,20 +144,21 @@ NextChar_2
 	bcf	INTCON3, INT1IF	;clear RB1 interrupt bit	
 	goto Mainline
 LCDTbl_1
-	db "Welcome         ",0,"         Load:A",0,"Ins Cone!   Up:A",0,"Offset:_       ",0,"Interval:_     ",0,"Ready!         ",0,"Deploying ...  ",0,"Success! Stats:A",0,"   cm( ) Next:A",0,"Store?    Yes:A",0
-LCDTbl_2
-	db "         Start:D",0,"*:Back    Next:D",0,"*:Back    Next:D",0,"*:Back    Next:D",0,"*:Back    Next:D",0,"         Abort:C",0,"*:Back          ",0,"*:Back TDist:   ",0,"*:Back      No:B",0
+	db "Welcome         ",0,"         Start:D",0
+	db "          Load:A",0,"*:Back    Next:D",0
+	db "Ins Cone!   Up:A",0,"*:Back    Down:D",0
+	db "Offset:_        ",0,"*:Back    Next:D",0
+	db "Interval:_      ",0,"*:Back    Next:D",0
+	db "Ready!          ",0,"*:Back   Start:D",0
+	db "Deploying ...   ",0,"         Abort:C",0
+	db "Success! Stats:A",0,"*:Back          ",0
+	db "   cm ( ) Next:A",0,"*:Back TDist:   ",0
+	db "Store?     Yes:A",0,"*:Back      No:B",0
+
 
 	;; Congrats again! The display has been written! Go back and chill!
 
-	
 
-
-
-
-
-
-	
 Mainline
 	goto	$
 end
