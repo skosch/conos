@@ -33,27 +33,27 @@ param_interval res 2
 tmp1	res 1			;temporary storage for calculations
 
 ;;;;;;Vectors;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	org		0x0000
+	org	0x0000
 	
 	
 	goto	Init
-	
-	org		0x08				;high priority ISR
+	;; ****************************************
+	;; NOTE TO SELF : IF YOU WANT TO USE LOW PRIORITY ISR,
+	;;	NEED TO ENABLE PRIORITY INTERRUPTS 
+	code
+	org	0x08				;high priority ISR
 	goto IHR
 
-	org		0x18				;low priority ISR
+	org	0x18				;low priority ISR
 	goto IHR
 	retfie
 
-	code
+
 
 IHR
-	;; if it was a key input, go to the menu handling thing.
-	btfsc	PORTB,1		;
+	bcf	LATE, 0
+	pagesel	menu_handler
 	goto	menu_handler
-	
-	
-	
 	retfie
 	
 Init
@@ -63,21 +63,23 @@ Init
 	movwf	TRISB
 	clrf	TRISC
 	clrf	TRISD
+	clrf	TRISE
 
 	clrf	LATA
 	clrf	LATB
 	clrf	LATC
 	clrf	LATD
+	clrf	LATE
 
-movlw	b'10101010'
+	movlw	b'10101010'
 	movwf	LATC
 	
 	call	InitLCD		; Initializes the LCD
 	bsf	INTCON3, INT1IE
 	bsf	INTCON2, INTEDG1 ; enable RB1 interrupts
 	bsf	INTCON, GIE
-	movlw	0
-	movwf	state
+	movlw	4
+	movwf	state		;
 	call	menu_drawscreen
 	goto	Mainline
 	
@@ -110,10 +112,12 @@ KeyTbl	db 1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0, 0 ;the list of values
 	;; ****************************************
 menu_handler
 	swapf	PORTB,W		;read PortB<7:4> into W<3:0>
-	andlw	0x0F		;mask the lower nibble
-	rlncf	WREG, W		;program memory counts up by two
+	andlw	0x0F		;mask the lower nibble;
+	;; here was a rlncf wreg, w to count the program memory up by two, no idea.
 	movwf	key_pressed
-	movff	key_pressed, PORTC
+
+	
+	
 	select state
 	case 0			;Welcome screen
 		movf	key_pressed, w
@@ -143,11 +147,11 @@ menu_handler
 
 	;; test for other keys AB#:
 		xorlw	3 ^ 15
-		gtifz	Mainline
+		gtifz	finish_interrupt
 		xorlw	7 ^ 3
-		gtifz	Mainline
+		gtifz	finish_interrupt
 		xorlw	14 ^ 7
-		gtifz	Mainline
+		gtifz	finish_interrupt
 
 	;; otherwise, it's a number key. append.
 		goto	parameter_append
@@ -160,7 +164,7 @@ menu_handler
 	
 	movf	PORTB, f
 
-	goto	Mainline
+	goto	finish_interrupt
 
 
 
@@ -174,7 +178,7 @@ parameter_append
 	andlw	b'00001111'
 	andwf	INDF0
 	movwf	INDF0
-	goto 	Mainline
+	goto 	finish_interrupt
 	return
 
 	;; ****************************************
@@ -184,7 +188,7 @@ parameter_delete
 	rrncf	INDF0, f, 4
 	movlw	8
 	rrcf	PLUSW0,f, 4	;goto the upper byte and shift it down by four as well
-	goto Mainline		;just in case.
+	goto finish_interrupt	;just in case.
 
 
 
@@ -193,6 +197,7 @@ parameter_delete
 	;; ****************************************
 menu_next
 	incf	state, f
+	movff	state, LATA
 	goto	menu_drawscreen
 
 	;; ****************************************
@@ -200,6 +205,7 @@ menu_next
 	;; ****************************************
 menu_back
 	decf	state, f
+	movff	state, LATA
 	goto	menu_drawscreen
 
 	;; ****************************************
@@ -214,24 +220,33 @@ menu_drawscreen
 	;;  first, load the tablepointer to the tables and write the first and
 	;;  second line to the display.
 	;;  then, take care of inserting the current variable values.
-	
+	call	InitLCD
 	movlw	upper LCDTbl_1
 	movwf	TBLPTRU
 	movlw	high LCDTbl_1
 	movwf	TBLPTRH
 	
-	movff	state, tmp1
-	movlw	16
-	mulwf	tmp1		;now tmp1 = state * 16
-	movf	tmp1,w 
-
+	movlw	36
+	mulwf	state 		;now tmp1 = state * 16
+	;; now result is in PRODH and PRODL
+	;; first, add PRODL to low LCDTbl_1 and carry up the result.
+		
 	movlw	low LCDTbl_1
-	addwf	tmp1, W		;add the key offset*16 to the lower end of the table
+	addwf	PRODL, W  ;add the key offset*16 to the lower end of the table 
 	
 	movwf	TBLPTRL
 	movlw	0
 	addwfc	TBLPTRH, F	;let the carry ripple up if we went too far
 	addwfc	TBLPTRU, F
+
+	;; now add PRODH to high LCDTbl_1 and carry up the result to upper.
+
+	movf	TBLPTRH, w
+	addwf	PRODH, w
+	movwf	TBLPTRH
+	movlw	0
+	addwfc	TBLPTRU
+	
 	tblrd	*		;read that thing into the latch
 	movf	TABLAT, W	;put it into W
 	movwf	PORTC
@@ -245,6 +260,7 @@ NextChar_1
 	call	CmdLCD
 
 	tblrd	+*
+	tblrd	+*
 	movf	TABLAT,W
 	
 NextChar_2
@@ -254,7 +270,7 @@ NextChar_2
 	bnz	NextChar_2	
 
 	
-	goto 	Mainline
+	goto 	finish_interrupt
 	;; Congrats! By now, the standard content for each state should be written.
 	
 	select state
@@ -270,24 +286,31 @@ NextChar_2
 	endcase
 	endselect
 
-	bcf	INTCON3, INT1IF	;clear RB1 interrupt bit	
-	goto Mainline
+
+	
 LCDTbl_1
-	db "Welcome         ",0,"         Start:D",0
-	db "          Load:A",0,"*:Back    Next:D",0
-	db "Ins Cone!   Up:A",0,"*:Back    Down:D",0
-	db "Offset:_        ",0,"*:Back    Next:D",0
-	db "Interval:_      ",0,"*:Back    Next:D",0
-	db "Ready!          ",0,"*:Back   Start:D",0
-	db "Deploying ...   ",0,"         Abort:C",0
-	db "Success! Stats:A",0,"*:Back          ",0
-	db "   cm ( ) Next:A",0,"*:Back TDist:   ",0
-	db "Store?     Yes:A",0,"*:Back      No:B",0
+	da "Welcome         ",0,"         Start:D",0
+	da "          Load:A",0,"*:Back    Next:D",0
+	da "Ins Cone!   Up:A",0,"*:Back    Down:D",0
+	da "Offset:_        ",0,"*:Back    Next:D",0
+	da "Interval:_      ",0,"*:Back    Next:D",0
+	da "Ready!          ",0,"*:Back   Start:D",0
+	da "Deploying ...   ",0,"         Abort:C",0
+	da "Success! Stats:A",0,"*:Back          ",0
+	da "   cm ( ) Next:A",0,"*:Back TDist:   ",0
+	da "Store?     Yes:A",0,"*:Back      No:B",0
 
 
 	;; Congrats again! The display has been written! Go back and chill!
 	
-
+finish_interrupt
+	bcf	INTCON3, INT1IF	;clear RB1 interrupt bit
+	
+	
+	bsf 	LATE,0
+	retfie
+	
 Mainline
+	
 	goto	$
 end
