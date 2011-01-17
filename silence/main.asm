@@ -174,9 +174,8 @@ state_2
 		goto	finish_interrupt
 
 state_3
-	;; 	PointFSR0To	offset_bcd ;append to offset variable 		PointFSR1To	param_offset
-
 		lfsr	0, offset_bcd
+		lfsr	1, param_offset
 	
 		movlw	12
 		xorwf	key_pressed,w	;*:Back
@@ -205,8 +204,9 @@ state_3
 		goto	parameter_append
 
 state_4
-		PointFSR0To	interval_bcd ;append to offset variable
-		PointFSR1To	param_interval
+		lfsr	0, interval_bcd
+		lfsr	1, param_interval
+
 		movlw	12
 		xorwf	key_pressed,w	;*:Back
 		gtifz	menu_back
@@ -261,11 +261,11 @@ parameter_append
 	movwf	INDF0	
 
 	movf	key_pressed,w
-	andlw	0xF		;make sure the new digit is four bits
-	andwf	INDF0		;add the new digit to the BCD
-	movwf	INDF0
+	iorwf	INDF0,f
 
-		
+	movff	INDF0,LATC
+
+	
 	goto 	menu_drawscreen
 	
 
@@ -284,7 +284,7 @@ parameter_delete
 	movwf	POSTDEC0
 
 	movf	INDF0, w
-	andwf	PREINC0,w
+	iorwf	PREINC0,w	;TEST
 	movf	POSTDEC0, f
 	movwf	INDF0
 
@@ -449,20 +449,19 @@ print_param
 	andlw	0xF		      ;take the lower nibble
 	movwf	digit_3
 	call	NumberToASCII
-	
 	call	WrtLCD
-	
+
+	movf	POSTDEC0,f
 	movf	INDF0,w
-	andwf	0xF0
+	andlw	0xF0
 	movwf	digit_2		;the second digit was in the upper nibble, but that 
 	swapf	digit_2,f
 	movf	digit_2,w
 	call	NumberToASCII
-	movlw	0x39
 	call	WrtLCD
 	
 	movf	INDF0,w
-	andwf	0xF
+	andlw	0xF
 	movwf	digit_1
 	call	NumberToASCII
 	call	WrtLCD
@@ -475,7 +474,6 @@ print_param_twodigits
 	movff	INDF0,tmp1	;and copy it to W to see whats up
 	swapf	tmp1,w
 	andlw	0xF
-	movwf	WREG
 	bz	print_param_onedigit
 
 	movlw	32
@@ -484,7 +482,7 @@ print_param_twodigits
 	movwf	digit_3
 	
 	movf	INDF0,w
-	andwf	0xF0
+	andlw	0xF0
 	movwf	digit_2		;the second digit was in the upper nibble, but that 
 	swapf	digit_2,f
 	movf	digit_2, w
@@ -492,7 +490,7 @@ print_param_twodigits
 	call	WrtLCD
 	
 	movf	INDF0,w
-	andwf	0xF
+	andlw	0xF
 	movwf	digit_1
 	call	NumberToASCII
 	call	WrtLCD
@@ -565,8 +563,9 @@ print_param_store
 
 NumberToASCII
 	;; add 48, because that's where the numbers start in ASCII
+	movwf	tmp1
 	movlw	0x30
-	addwf	WREG,w
+	addwf	tmp1,w
 	return
 
 	
