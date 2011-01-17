@@ -30,6 +30,10 @@ interval_bcd res 2
 param_offset res 2		;offset in cm, up to 300, therefore 2 bytes
 param_interval res 2
 
+digit_1 res 1
+digit_2	res 1
+digit_3	res 1
+
 tmp1	res 1			;temporary storage for calculations
 
 ;;;;;;Vectors;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -71,15 +75,19 @@ Init
 	clrf	LATD
 	clrf	LATE
 
-	movlw	b'10101010'
-	movwf	LATC
-	
 	call	InitLCD		; Initializes the LCD
 	bsf	INTCON3, INT1IE
 	bsf	INTCON2, INTEDG1 ; enable RB1 interrupts
 	bsf	INTCON, GIE
-	movlw	4
-	movwf	state		;
+	movlw	0
+	movwf	state
+	movwf	digit_1
+	movwf	digit_2
+	movwf	digit_3
+	movwf	param_offset
+	movwf	param_interval
+	movwf	offset_bcd
+	movwf	interval_bcd
 	call	menu_drawscreen
 	goto	Mainline
 	
@@ -102,9 +110,10 @@ KPHexToInt
 	
 	movf	TABLAT, W	;put it into W
 	movwf	key_pressed
+	return
 	
 KeyTbl	db 1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0, 0 ;the list of values
-	return
+	
 
 
 	;; ****************************************
@@ -117,51 +126,115 @@ menu_handler
 	movwf	key_pressed
 
 	
-	
-	select state
-	case 0			;Welcome screen
+	;; select case state
+	movff	state, tmp1
+	movlw	0
+	subwf	tmp1,w
+	gtifz	state_0
+	movlw	1
+	subwf	tmp1,f
+	gtifz	state_1
+	subwf	tmp1,f
+	gtifz	state_2
+	subwf	tmp1,f
+	gtifz	state_3
+	subwf	tmp1,f
+	gtifz	state_4
+
+
+state_0			;Welcome screen
 		movf	key_pressed, w
 		xorlw	15	;D:Next
-		gtifz	menu_next
+		gtifz	menu_next ;
+		goto	finish_interrupt
 
-	endcase
-	case 1			;Load Prompt
-		movf	key_pressed, w
-		xorlw	12	;*:Back
-		gtifz	menu_back	
-		xorlw	3 ^ 12	;A:Load
+state_1
+		movlw	12
+		xorwf	key_pressed, w
+		gtifz	menu_back ;*:Back
+		movlw	3
+		xorwf	key_pressed, w
 		gtifz	menu_next
-		xorlw	15 ^ 12	;D:Next
+		movlw	15
+		xorwf	key_pressed, w
 		gtifz	menu_skip
+		goto 	finish_interrupt
 
-	endcase
-	case 2			;Offset Prompt
-		PointFSR0To	offset_bcd ;append to offset variable
+state_2
 		movf	key_pressed, w
-		xorlw	12	;*:Back
-		gtifz	menu_back	
-		xorlw	11 ^ 12	;C:Delete
+		movlw	12
+		xorwf	key_pressed, w
+		gtifz	menu_back ;*:Back
+		movlw	3
+		xorwf	key_pressed, w ;here's some motor to turn it up; for now only an lcd
+		bsf	LATE,0
+		movlw	7
+		xorwf	key_pressed, w
+		bcf	LATE,0
+		goto	finish_interrupt
+
+state_3
+	;; 	PointFSR0To	offset_bcd ;append to offset variable 		PointFSR1To	param_offset
+
+		lfsr	0, offset_bcd
+	
+		movlw	12
+		xorwf	key_pressed,w	;*:Back
+		gtifz	menu_twoback
+
+		movlw	11
+		xorwf	key_pressed, w
 		gtifz	parameter_delete
-		xorlw	15 ^ 11	;D:Next
-		gtifz	menu_skip	
+
+		movlw	15
+		xorwf	key_pressed, w
+		gtifz	menu_next
 
 	;; test for other keys AB#:
-		xorlw	3 ^ 15
+		movlw	3
+		xorwf	key_pressed, w
 		gtifz	finish_interrupt
-		xorlw	7 ^ 3
+		movlw	7
+		xorwf	key_pressed, w
 		gtifz	finish_interrupt
-		xorlw	14 ^ 7
+		movlw	14
+		xorwf	key_pressed, w
+		gtifz	finish_interrupt
+
+	;; otherwise, it's a number key. 
+		goto	parameter_append
+
+state_4
+		PointFSR0To	interval_bcd ;append to offset variable
+		PointFSR1To	param_interval
+		movlw	12
+		xorwf	key_pressed,w	;*:Back
+		gtifz	menu_back
+
+		movlw	11
+		xorwf	key_pressed,w
+		gtifz	parameter_delete
+
+		movlw	15
+		xorwf	key_pressed,w
+		gtifz	menu_next	
+
+	;; test for other keys AB#:
+		movlw	3
+		xorwf	key_pressed,w
+		gtifz	finish_interrupt
+		movlw	7
+		xorwf	key_pressed,w
+		gtifz	finish_interrupt
+		movlw	14
+		xorwf	key_pressed,w
 		gtifz	finish_interrupt
 
 	;; otherwise, it's a number key. append.
 		goto	parameter_append
-	
-	endcase
-	case 3			;Interval Prompt
 
-	endcase
-	endselect
 	
+menu_default
 	movf	PORTB, f
 
 	goto	finish_interrupt
@@ -173,23 +246,52 @@ menu_handler
 	;; ****************************************
 parameter_append
 	call	KPHexToInt
-	;; rotate left by 4 bits
-	rlcf	INDF0, f, 4
-	andlw	b'00001111'
-	andwf	INDF0
+	movwf	key_pressed
+	;; rotate left by 4 bits to make room for the new digit
+	clrf	PREINC0
+	movf	POSTDEC0,f
+	swapf	INDF0, w	;take nibble two and put it into w
+	andlw	0xF
+	movwf	PREINC0		;and make it the new highest nibble
+	movf	POSTDEC0, f
+
+	movf	INDF0, w	;clear what used to be the middle nibble
+	andlw	0xF		;now take the lowest nibble
+	swapf	WREG, w		;put it in the high position
+	movwf	INDF0	
+
+	movf	key_pressed,w
+	andlw	0xF		;make sure the new digit is four bits
+	andwf	INDF0		;add the new digit to the BCD
 	movwf	INDF0
-	goto 	finish_interrupt
-	return
+
+		
+	goto 	menu_drawscreen
+	
 
 	;; ****************************************
 	;; Deletes an offset or interval character and updates the display
 	;; ****************************************
 parameter_delete
-	rrncf	INDF0, f, 4
-	movlw	8
-	rrcf	PLUSW0,f, 4	;goto the upper byte and shift it down by four as well
-	goto finish_interrupt	;just in case.
+	swapf	INDF0, f
+	movf	INDF0,w
+	andlw	0xF
+	movwf	INDF0
 
+	movf	PREINC0,w
+	andlw	0xF
+	swapf	WREG, w
+	movwf	POSTDEC0
+
+	movf	INDF0, w
+	andwf	PREINC0,w
+	movf	POSTDEC0, f
+	movwf	INDF0
+
+	clrf	PREINC0
+	movf	POSTDEC0, f
+	
+	goto menu_drawscreen	;just in case.
 
 
 	;; ****************************************
@@ -197,7 +299,7 @@ parameter_delete
 	;; ****************************************
 menu_next
 	incf	state, f
-	movff	state, LATA
+	movff	state, LATC
 	goto	menu_drawscreen
 
 	;; ****************************************
@@ -205,16 +307,27 @@ menu_next
 	;; ****************************************
 menu_back
 	decf	state, f
-	movff	state, LATA
+	movff	state, LATC
 	goto	menu_drawscreen
 
+	;; ****************************************
+	;; Decreases the state counter and draws the screen
+	;; ****************************************
+menu_twoback
+	decf	state, f
+	decf	state, f
+	movff	state, LATC
+	goto	menu_drawscreen
+	
 	;; ****************************************
 	;; Increases the state counter by two and draws the screen
 	;; ****************************************
 menu_skip
 	incf	state, f
 	incf	state, f
+	movff	state,LATC
 	goto	menu_drawscreen
+	
 
 menu_drawscreen
 	;;  first, load the tablepointer to the tables and write the first and
@@ -249,7 +362,7 @@ menu_drawscreen
 	
 	tblrd	*		;read that thing into the latch
 	movf	TABLAT, W	;put it into W
-	movwf	PORTC
+
 NextChar_1
 	call	WrtLCD		;loop through the table entry until 0 is hit
 	tblrd	+*
@@ -270,28 +383,33 @@ NextChar_2
 	bnz	NextChar_2	
 
 	
-	goto 	finish_interrupt
+	
 	;; Congrats! By now, the standard content for each state should be written.
 	
 	select state
 	case 	3		;add the offset value
-	movlw 	.7
+	movlw 	0x87		;move the cursor behind the word "Offset:"
 	call	CmdLCD
-	;; write offset
+
+	call	print_param	;offset should still be in the FSR, so print_param can do its job
+	movlw	0xD0
+	call	CmdLCD		;put cursor away
 	endcase
 	case 	4			;add the interval value
-	movlw	.9
+	movlw	0x89			;	call	CmdLCD
 	call	CmdLCD
-	;; write interval
+	call	print_param
+	movlw	0xD0
+	call	CmdLCD		;put cursor away
 	endcase
 	endselect
-
+	goto 	finish_interrupt
 
 	
 LCDTbl_1
 	da "Welcome         ",0,"         Start:D",0
 	da "          Load:A",0,"*:Back    Next:D",0
-	da "Ins Cone!   Up:A",0,"*:Back    Down:D",0
+	da "Ins Cone!   Up:A",0,"*:Back    Down:B",0
 	da "Offset:_        ",0,"*:Back    Next:D",0
 	da "Interval:_      ",0,"*:Back    Next:D",0
 	da "Ready!          ",0,"*:Back   Start:D",0
@@ -300,14 +418,160 @@ LCDTbl_1
 	da "   cm ( ) Next:A",0,"*:Back TDist:   ",0
 	da "Store?     Yes:A",0,"*:Back      No:B",0
 
+	;; ****************************************
+	;; Print_param prints the BCD value that's currently in the FSR to the LCD
+	;; ****************************************
+print_param
+	;; first, find out where to put it
 
+	;; if(PLUSW0 > 0) {
+	;; write lower nibble of PLUSW0
+	;; write upper nibble of INDF0
+	;; write lower nibble of INDF0
+	;; } else if(INDF0>15 and PLUSW==0) {
+	;; write upper nibble of INDF0
+	;; write lower nibble of INDF0
+	;; write space
+	;; } else if(INDF0>0 and PLUSW==0) {
+	;; write lower nibble of INDF0
+	;; write space
+	;; write space
+	;; } else if(INDF==0 and PLUSW==0){
+	;; write 0
+	;; write space
+	;; write space
+	;; }
+
+	movf	PREINC0, w	;	movf	POSTDEC0,f
+	bz	print_param_twodigits ;do the following if there are three digits
+	
+	
+	andlw	0xF		      ;take the lower nibble
+	movwf	digit_3
+	call	NumberToASCII
+	
+	call	WrtLCD
+	
+	movf	INDF0,w
+	andwf	0xF0
+	movwf	digit_2		;the second digit was in the upper nibble, but that 
+	swapf	digit_2,f
+	movf	digit_2,w
+	call	NumberToASCII
+	movlw	0x39
+	call	WrtLCD
+	
+	movf	INDF0,w
+	andwf	0xF
+	movwf	digit_1
+	call	NumberToASCII
+	call	WrtLCD
+
+	goto	print_param_store
+	
+print_param_twodigits
+	;; If indf0>15
+	movf	POSTDEC0, f	;go back to the lower byte
+	movff	INDF0,tmp1	;and copy it to W to see whats up
+	swapf	tmp1,w
+	andlw	0xF
+	movwf	WREG
+	bz	print_param_onedigit
+
+	movlw	32
+	call	WrtLCD		;print one space, this is digit 3
+	movlw	0
+	movwf	digit_3
+	
+	movf	INDF0,w
+	andwf	0xF0
+	movwf	digit_2		;the second digit was in the upper nibble, but that 
+	swapf	digit_2,f
+	movf	digit_2, w
+	call	NumberToASCII
+	call	WrtLCD
+	
+	movf	INDF0,w
+	andwf	0xF
+	movwf	digit_1
+	call	NumberToASCII
+	call	WrtLCD
+
+	goto	print_param_store
+	
+print_param_onedigit
+	;; If indf0<b1111
+	movf	INDF0, f
+	bz	print_param_zero
+
+	movlw	0
+	movwf	digit_3
+	movwf	digit_2
+
+	movlw	32
+	call	WrtLCD
+	movlw	32
+	call	WrtLCD
+	
+	movf	INDF0, w
+	andwf	0xF
+	movwf	digit_1
+	call	NumberToASCII
+	call	WrtLCD
+
+	goto	print_param_store
+
+	
+print_param_zero
+	movlw	32
+	call	WrtLCD
+	movlw	32
+	call	WrtLCD
+	
+	movlw	0		;print 0[space][space]
+	movwf	digit_3
+	movwf	digit_2
+	movwf	digit_1
+
+	movlw	0x30
+	call	WrtLCD		;test!
+	goto	print_param_store
+	
+print_param_store
+	;; take digits 1, 2, and 3 and store them as an actual number in FSR1.
+	clrf	INDF1		;clear the register
+	
+	movlw	10
+	mulwf	digit_2		;PROD=digit2*10
+
+	movf	digit_1, w
+	addwf	INDF1, f
+	movf	PRODL, w
+	addwfc	INDF1, f	;INDF1 is now digit1 + PRODL
+
+	movlw	100
+	mulwf	digit_3		;PROD=digit3*100
+
+	movf	PRODL,w
+	addwfc	INDF1,f		;add lower byte
+	movf	PRODH,w
+	addwf	PREINC1,f	;add upper byte to upper byte of INDF1
+
+	
+	return
+
+	
 	;; Congrats again! The display has been written! Go back and chill!
+
+NumberToASCII
+	;; add 48, because that's where the numbers start in ASCII
+	movlw	0x30
+	addwf	WREG,w
+	return
+
 	
 finish_interrupt
 	bcf	INTCON3, INT1IF	;clear RB1 interrupt bit
-	
-	
-	bsf 	LATE,0
 	retfie
 	
 Mainline

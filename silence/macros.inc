@@ -577,27 +577,33 @@ endm
 
 
 PointFSR0To macro varname
+	movwf	tmp1
 	movlw	high varname
 	movwf	FSR0H
 	movlw	low varname
 	movwf	FSR0L
+	movf	tmp1, w
 endm
 
 PointFSR1To macro varname
+	movwf	tmp1
 	movlw	high varname
 	movwf	FSR1H
 	movlw	low varname
 	movwf	FSR1L
+	movf	tmp1, w
 endm
 
 PointFSR2To macro varname
+	movwf	tmp1
 	movlw	high varname
 	movwf	FSR2H
 	movlw	low varname
 	movwf	FSR2L
+	movf	tmp1, w
 endm
 
 gtifz	macro point
-	btfss STATUS,Z
+	btfsc STATUS,Z
 	goto  point
 endm
