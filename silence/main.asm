@@ -34,6 +34,19 @@ digit_1 res 1
 digit_2	res 1
 digit_3	res 1
 
+cones_deployed res 1
+cones_remaining res 1		;boolean, from distance sensor in shaft
+
+	;; stats variables
+cones_positions res 20
+cones_type	res 2
+
+dist_traveled	res 2
+stats_current_display res 1	;the number of the cone currently shown
+stats_current_set res 1		;the set (date/time) currently being browsed in the stats
+
+stats_mode res 1		;whether or not we're in stats mode, for the print-param.
+	
 tmp1	res 1			;temporary storage for calculations
 
 ;;;;;;Vectors;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -79,6 +92,8 @@ Init
 	bsf	INTCON3, INT1IE
 	bsf	INTCON2, INTEDG1 ; enable RB1 interrupts
 	bsf	INTCON, GIE
+
+	;; set all variables to zero
 	movlw	0
 	movwf	state
 	movwf	digit_1
@@ -86,8 +101,13 @@ Init
 	movwf	digit_3
 	movwf	param_offset
 	movwf	param_interval
-	movwf	offset_bcd
-	movwf	interval_bcd
+	lfsr	0,offset_bcd
+	movwf	INDF0
+	movwf	PREINC0
+	lfsr	0,interval_bcd
+	movwf	INDF0
+	movwf	PREINC0
+
 	call	menu_drawscreen
 	goto	Mainline
 	
@@ -140,98 +160,148 @@ menu_handler
 	gtifz	state_3
 	subwf	tmp1,f
 	gtifz	state_4
-
+	subwf	tmp1,f
+	gtifz	state_5
+	subwf	tmp1,f
+	gtifz	state_6
+	subwf	tmp1,f
+	gtifz	state_7
 
 state_0			;Welcome screen
-		movf	key_pressed, w
-		xorlw	15	;D:Next
-		gtifz	menu_next ;
-		goto	finish_interrupt
+	movf	key_pressed, w
+	xorlw	15	;D:Next
+	gtifz	menu_next ;
+	goto	finish_interrupt
 
 state_1
-		movlw	12
-		xorwf	key_pressed, w
-		gtifz	menu_back ;*:Back
-		movlw	3
-		xorwf	key_pressed, w
-		gtifz	menu_next
-		movlw	15
-		xorwf	key_pressed, w
-		gtifz	menu_skip
-		goto 	finish_interrupt
+	movlw	0	;might go to offset screen, clear digits just to be sure
+	movwf	digit_1
+	movwf	digit_2
+	movwf	digit_3
+	
+	movlw	12
+	xorwf	key_pressed, w
+	gtifz	menu_back ;*:Back
+	movlw	3
+	xorwf	key_pressed, w
+	gtifz	menu_next
+	movlw	15
+	xorwf	key_pressed, w
+	gtifz	menu_skip
+	goto 	finish_interrupt
 
 state_2
-		movf	key_pressed, w
-		movlw	12
-		xorwf	key_pressed, w
-		gtifz	menu_back ;*:Back
-		movlw	3
-		xorwf	key_pressed, w ;here's some motor to turn it up; for now only an lcd
-		bsf	LATE,0
-		movlw	7
-		xorwf	key_pressed, w
-		bcf	LATE,0
-		goto	finish_interrupt
-
-state_3
-		lfsr	0, offset_bcd
-		lfsr	1, param_offset
 	
-		movlw	12
-		xorwf	key_pressed,w	;*:Back
-		gtifz	menu_twoback
+	movf	key_pressed, w
+	movlw	12
+	xorwf	key_pressed, w
+	gtifz	menu_back ;*:Back
+	movlw	3
+	xorwf	key_pressed, w ;here's some motor to turn it up; for now only an lcd
+	bsf	LATE,0
+	movlw	7
+	xorwf	key_pressed, w
+	bcf	LATE,0
+	goto	finish_interrupt
 
-		movlw	11
-		xorwf	key_pressed, w
-		gtifz	parameter_delete
+state_3	
+	movlw	12
+	xorwf	key_pressed,w	;*:Back
+	gtifz	menu_twoback
 
-		movlw	15
-		xorwf	key_pressed, w
-		gtifz	menu_next
+	movlw	11
+	xorwf	key_pressed, w
+	gtifz	parameter_delete
+
+	movlw	15
+	xorwf	key_pressed, w
+	gtifz	menu_next
 
 	;; test for other keys AB#:
-		movlw	3
-		xorwf	key_pressed, w
-		gtifz	finish_interrupt
-		movlw	7
-		xorwf	key_pressed, w
-		gtifz	finish_interrupt
-		movlw	14
-		xorwf	key_pressed, w
-		gtifz	finish_interrupt
+	movlw	3
+	xorwf	key_pressed, w
+	gtifz	finish_interrupt
+	movlw	7
+	xorwf	key_pressed, w
+	gtifz	finish_interrupt
+	movlw	14
+	xorwf	key_pressed, w
+	gtifz	finish_interrupt
 
 	;; otherwise, it's a number key. 
-		goto	parameter_append
+	goto	parameter_append
 
 state_4
-		lfsr	0, interval_bcd
-		lfsr	1, param_interval
+	movlw	12
+	xorwf	key_pressed,w	;*:Back
+	gtifz	menu_back
 
-		movlw	12
-		xorwf	key_pressed,w	;*:Back
-		gtifz	menu_back
-
-		movlw	11
-		xorwf	key_pressed,w
-		gtifz	parameter_delete
-
-		movlw	15
-		xorwf	key_pressed,w
-		gtifz	menu_next	
+	movlw	11
+	xorwf	key_pressed,w
+	gtifz	parameter_delete
+	
+	movlw	15
+	xorwf	key_pressed,w
+	gtifz	menu_next	
 
 	;; test for other keys AB#:
-		movlw	3
-		xorwf	key_pressed,w
-		gtifz	finish_interrupt
-		movlw	7
-		xorwf	key_pressed,w
-		gtifz	finish_interrupt
-		movlw	14
-		xorwf	key_pressed,w
-		gtifz	finish_interrupt
+	movlw	3
+	xorwf	key_pressed,w
+	gtifz	finish_interrupt
+	movlw	7
+	xorwf	key_pressed,w
+	gtifz	finish_interrupt
+	movlw	14
+	xorwf	key_pressed,w
+	gtifz	finish_interrupt
 
 	;; otherwise, it's a number key. append.
-		goto	parameter_append
+	goto	parameter_append
+state_5				;READY!
+	movlw	12
+	xorwf	key_pressed,w
+	gtifz	menu_back
+
+	movlw	15
+	xorwf	key_pressed,w
+	gtifz	start_deployment ;THIS IS WHERE THE ACTUAL DELPLOYMENT STARTS!
+
+	goto	finish_interrupt
+state_6
+	movlw	11		;C:Abort
+	xorwf	key_pressed,w
+	gtifz	menu_back	;THIS IS WHEN THE ACTUAL DEPLOYMENT IS ABORTED!
+
+	movlw	15		;THIS IS JUST FOR NOW, TO TEST NAVIGATIONZ!
+	xorwf	key_pressed,w
+	gtifz	menu_next
+	
+	goto	finish_interrupt
+state_7				;Success screen
+	movlw	12
+	xorwf	key_pressed,w
+	gtifz	menu_start	;go back to start screen
+
+	movlw	3
+	xorwf	key_pressed,w
+	gtifz	menu_next	;start stats screen
+	goto	finish_interrupt
+	
+
+state_8				;Stats screen
+	movlw	12
+	xorwf	key_pressed,w	;go back to start screen
+	gtifz	menu_start
+
+	movlw	3
+	xorwf	key_pressed,w
+	gtifz	stats_show_previous
+	
+	movlw	7
+	xorwf	key_pressed,w
+	gtifz	stats_show_next
+
+	goto	finish_interrupt
 
 	
 menu_default
@@ -293,13 +363,19 @@ parameter_delete
 	
 	goto menu_drawscreen	;just in case.
 
+	;; ****************************************
+	;; Go back to welcome screen
+	;; ****************************************
+menu_start
+	goto	Init		;calls Init, which clears everthing and calls
+				;menu_drawscreen, which calls finish_interrupt.
 
 	;; ****************************************
 	;; Increases the state counter and draws the screen
 	;; ****************************************
 menu_next
 	incf	state, f
-	movff	state, LATC
+	call	menu_prepareforinput
 	goto	menu_drawscreen
 
 	;; ****************************************
@@ -307,8 +383,28 @@ menu_next
 	;; ****************************************
 menu_back
 	decf	state, f
-	movff	state, LATC
+	call	menu_prepareforinput
 	goto	menu_drawscreen
+
+	;; ****************************************
+	;; Deletes leftover BCD digits and makes sure the address pointers are right
+	;; ****************************************
+menu_prepareforinput
+	movlw	0
+	movwf	digit_1
+	movwf	digit_2
+	movwf	digit_3
+	select	state
+	case	3
+	lfsr	0, offset_bcd
+	lfsr	1, param_offset
+	endcase
+	case	4
+	lfsr	0, interval_bcd
+	lfsr	1, param_interval
+	endcase
+	endselect
+	return
 
 	;; ****************************************
 	;; Decreases the state counter and draws the screen
@@ -316,7 +412,6 @@ menu_back
 menu_twoback
 	decf	state, f
 	decf	state, f
-	movff	state, LATC
 	goto	menu_drawscreen
 	
 	;; ****************************************
@@ -325,7 +420,7 @@ menu_twoback
 menu_skip
 	incf	state, f
 	incf	state, f
-	movff	state,LATC
+	call	menu_prepareforinput
 	goto	menu_drawscreen
 	
 
@@ -414,9 +509,9 @@ LCDTbl_1
 	da "Interval:_      ",0,"*:Back    Next:D",0
 	da "Ready!          ",0,"*:Back   Start:D",0
 	da "Deploying ...   ",0,"         Abort:C",0
-	da "Success! Stats:A",0,"*:Back          ",0
-	da "   cm ( ) Next:A",0,"*:Back TDist:   ",0
-	da "Store?     Yes:A",0,"*:Back      No:B",0
+	da "Done! Store&view",0,"*:End    stats:A",0
+	da "   cm ( )  <>:AB",0,"*:End  TDist:   ",0
+
 
 	;; ****************************************
 	;; Print_param prints the BCD value that's currently in the FSR to the LCD
@@ -568,6 +663,26 @@ NumberToASCII
 	addwf	tmp1,w
 	return
 
+	;; ****************************************
+	;; Show the next stat data set
+	;; ****************************************
+stats_show_next
+	incf	stats_current_display, f
+	movlw	1
+	movwf	stats_mode	;display stat sets
+	call	menu_drawscreen
+
+	;; ****************************************
+	;; Show the previous data set
+	;; ****************************************
+stats_show_previous
+	decf	stats_current_display, f
+	movlw	1
+	movwf	stats_mode	;display stat sets
+	call	menu_drawscreen
+
+stats
+	
 	
 finish_interrupt
 	bcf	INTCON3, INT1IF	;clear RB1 interrupt bit
