@@ -1,6 +1,12 @@
+#include <p18f4620.inc>
+#include <macros.inc>
+#include <menu.inc>
+
+extern state, cones_deployed, cones_remaining, cones_positions, cones_type, timestamp, dist_traveled, stats_current_display, stats_current_set, stats_mode, tmp1
+
 
 	code
-	global start_deployment
+	global start_deployment, stop_deployment
 
 
 start_deployment
@@ -10,18 +16,29 @@ start_deployment
 	;; incf state
 	;; call stop_deployment
 
+	lfsr	0, timestamp	;TESTLINE: WRITE THE CURRENT TIME INTO THE TIMESTAMP REGISTER
+	movlw	b'01010101'
+	movwf	INDF0
+	movlw	b'11110110'
+	movwf	PREINC0
+
+	lfsr	0, cones_positions
+	lfsr	1, dist_traveled
+	lfsr	2, cones_type
+
+	
 	incf	state,f
 	call	menu_drawscreen
 
-	movlw	8
+	movlw	8		;TESTLINE
 	movwf	cones_deployed
 
-	movlw	upper TblCones
+	movlw	upper TblCones	;TESTLINE
 	movwf	TBLPTRU
 	movlw	high TblCones
 	movwf	TBLPTRH
 	movwf	low TblCones
-	lfsr	0, cone_positions
+
 	
 	tblrd	*
 copy_TblCones
@@ -29,23 +46,18 @@ copy_TblCones
 	tblrd	+*
 	bnz	copy_TblCones	;copy all the values of TblCones into cone_positions
 
-	lfsr	0, cone_types	;copy the types deployed into cone_types
-	movlw	b'00101000'
-	movwf	INDF0
-	movlw	0
-	movwf	PREINC0
 
-	lfsr	0, dist_traveled
+	movlw	b'00101000'	;write 0000 0000 0010 1000 into the cone_type register
+	movwf	INDF2
+	movlw	0
+	movwf	PREINC2
+
 	movlw	84
-	movwf	INDF0
+	movwf	INDF1
 	movlw	0
-	movwf	PREINC0
+	movwf	PREINC1		;write 0000 0000 0000 0084 into the distance_traveled register
 
-	lfsr	0, timestamp
-	movlw	b'01010101'
-	movwf	INDF0
-	movlwf	b'11110110'
-	movwf	PREINC0
+
 
 	;; all the values we need for one set of stats is now in the temp stats vars.
 	
