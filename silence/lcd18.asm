@@ -1,3 +1,4 @@
+
 #include <p18f4620.inc>
 	
 	;Declare unbanked variables (at 0x70 and on)

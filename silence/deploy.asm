@@ -1,3 +1,4 @@
+list P=18F4620, F=INHX32, C=160, N=80, ST=OFF, MM=OFF, R=DEC
 #include <p18f4620.inc>
 #include <macros.inc>
 #include <menu.inc>

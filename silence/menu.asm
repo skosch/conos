@@ -1,3 +1,4 @@
+list P=18F4620, F=INHX32, C=160, N=80, ST=OFF, MM=OFF, R=DEC
 #include <p18f4620.inc>
 #include <deploy.inc>
 #include <lcd18.inc>
@@ -79,35 +80,17 @@ menu_handler
 	;; here was a rlncf wreg, w to count the program memory up by two, no idea.
 	movwf	key_pressed
 
-
-	;; select case state
-	movff	state, tmp1
-	movlw	0
-	subwf	tmp1,w
-	gtifz	state_0
-	movlw	1
-	subwf	tmp1,f
-	gtifz	state_1
-	subwf	tmp1,f
-	gtifz	state_2
-	subwf	tmp1,f
-	gtifz	state_3
-	subwf	tmp1,f
-	gtifz	state_4
-	subwf	tmp1,f
-	gtifz	state_5
-	subwf	tmp1,f
-	gtifz	state_6
-	subwf	tmp1,f
-	gtifz	state_7
-
-state_0			;Welcome screen
+	select state
+	case 0
+		;Welcome screen
 	movf	key_pressed, w
-	xorlw	15	;D:Next
+	xorlw	0xF	;D:Next
+	movwf	LATA
 	gtifz	menu_next ;
 	goto	finish_interrupt
-
-state_1
+	endcase
+	case 1
+		  ;Options screen
 	movlw	0	;might go to offset screen, clear digits just to be sure
 	movwf	digit_1
 	movwf	digit_2
@@ -123,22 +106,9 @@ state_1
 	xorwf	key_pressed, w
 	gtifz	menu_skip
 	goto 	finish_interrupt
-
-state_2
-	
-	movf	key_pressed, w
-	movlw	12
-	xorwf	key_pressed, w
-	gtifz	menu_back ;*:Back
-	movlw	3
-	xorwf	key_pressed, w ;here's some motor to turn it up; for now only an lcd
-	bsf	LATE,0
-	movlw	7
-	xorwf	key_pressed, w
-	bcf	LATE,0
-	goto	finish_interrupt
-
-state_3	
+	endcase
+	case 2
+	;; Offset screen
 	movlw	12
 	xorwf	key_pressed,w	;*:Back
 	gtifz	menu_twoback
@@ -164,8 +134,9 @@ state_3
 
 	;; otherwise, it's a number key. 
 	goto	parameter_append
-
-state_4
+	endcase
+	case 3
+	;; Interval Screen
 	movlw	12
 	xorwf	key_pressed,w	;*:Back
 	gtifz	menu_back
@@ -191,7 +162,9 @@ state_4
 
 	;; otherwise, it's a number key. append.
 	goto	parameter_append
-state_5				;READY!
+	endcase
+	case 4
+	;; READY!
 	movlw	12
 	xorwf	key_pressed,w
 	gtifz	menu_back
@@ -201,7 +174,9 @@ state_5				;READY!
 	gtifz	start_deployment ;THIS IS WHERE THE ACTUAL DELPLOYMENT STARTS!
 
 	goto	finish_interrupt
-state_6
+	endcase
+	case 5
+	;; Deploying ...
 	movlw	11		;C:Abort
 	xorwf	key_pressed,w
 	gtifz	menu_back	;THIS IS WHEN THE ACTUAL DEPLOYMENT IS ABORTED!
@@ -211,7 +186,9 @@ state_6
 	gtifz	menu_next
 	
 	goto	finish_interrupt
-state_7				;Success screen
+	endcase
+	case 6
+	;; Success Screen
 	movlw	12
 	xorwf	key_pressed,w
 	gtifz	menu_start	;go back to start screen
@@ -220,9 +197,9 @@ state_7				;Success screen
 	xorwf	key_pressed,w
 	gtifz	menu_next	;start stats screen
 	goto	finish_interrupt
-	
-
-state_8				;Stats screen
+	endcase
+	case 7
+	;; Stats screen after deployment
 	movlw	12
 	xorwf	key_pressed,w	;go back to start screen
 	gtifz	menu_start
@@ -236,7 +213,99 @@ state_8				;Stats screen
 	gtifz	stats_show_next
 
 	goto	finish_interrupt
+	endcase
+	case 8
+	;; Settings screen
+	movlw	14		;#:Date
+	xorwf	key_pressed,w
+	gtifz	menu_13
 
+	movlw	12
+	xorwf	key_pressed,w
+	gtifz	menu_1
+
+	movlw	3		;A:Time
+	xorwf	key_pressed,w
+	gtifz	menu_14
+
+	movlw	15		;D:Stats
+	xorwf	key_pressed,w
+	gtifz	menu_next
+
+	goto	finish_interrupt
+	endcase
+	case 9
+	;; Stats Selection (View or Delete)
+	movlw	3
+	xorwf	key_pressed,w
+	gtifz	menu_10		;THIS COULD BE MENU_NEXT, BUT WE HAVE TO GO INTO STATS MODE
+
+	movlw	12
+	xorwf	key_pressed,w
+	gtifz	menu_back
+
+	movlw	7		;B:Delete
+	xorwf	key_pressed,w
+	gtifz	menu_12		;Delete window
+
+	goto	finish_interrupt
+	endcase
+	case 10
+	;; Set Selection
+	movlw	12
+	xorwf	key_pressed,w
+	gtifz	menu_9
+
+	movlw	3		;A: Show next set
+	xorwf	key_pressed,w
+	gtifz	stats_show_next_set
+
+	movlw	7
+	xorwf	key_pressed,w
+	gtifz	stats_show_previous_set
+
+	movlw	15		;D: View Set data
+	xorwf	key_pressed,w
+	gtifz	menu_11
+
+	goto	finish_interrupt
+	endcase
+	case 11
+	;; View data set
+	movlw	12
+	xorwf	key_pressed,w
+	gtifz	menu_10
+
+	movlw	3		;A: Show next cone
+	xorwf	key_pressed,w
+	gtifz	stats_show_next_cone
+
+	movlw	7
+	xorwf	key_pressed,w
+	gtifz	stats_show_previous_cone
+
+	goto	finish_interrupt
+	endcase
+	case 12
+	;; Delete all data?
+	movlw	12
+	xorwf	key_pressed,w
+	gtifz	menu_9
+
+	movlw	3
+	xorwf	key_pressed,w
+	gtifz	menu_delete_data
+
+	goto	finish_interrupt
+	endcase
+	case 13
+	;; Enter date
+	
+	endcase
+	case 14
+	;; Enter time
+	endcase
+	endselect
 	
 menu_default
 	movf	PORTB, f
@@ -437,8 +506,7 @@ NextChar_2
 	
 LCDTbl_1
 	da "Welcome         ",0,"         Start:D",0
-	da "          Load:A",0,"*:Back    Next:D",0
-	da "Ins Cone!   Up:A",0,"*:Back    Down:B",0
+	da "       Options:A",0,"*:Back    Next:D",0
 	da "Offset:_        ",0,"*:Back    Next:D",0
 	da "Interval:_      ",0,"*:Back    Next:D",0
 	da "Ready!          ",0,"*:Back   Start:D",0
@@ -446,13 +514,22 @@ LCDTbl_1
 	da "Done! Store&view",0,"*:End    stats:A",0
 	da "   cm ( )  <>:AB",0,"*:End  TDist:   ",0
 
+	da "#:Date    Time:A",0,"*:Back   Stats:D",0
+	da "          View:A",0,"*:Back  Delete:B",0
+	da "           <>:AB",0,"*:Back    View:D",0
+	da "   cm ( )  <>:AB",0,"*:Back TDist:   ",0
+
+	da "Del. all stats? ",0,"*:Back     Yes:A",0
+
+	da "Enter Date:     ",0,"  /  /      OK:D",0
+	da "Enter Time:     ",0,"  :         OK:D",0
+	
 
 	;; ****************************************
 	;; Print_param prints the BCD value that's currently in the FSR to the LCD
 	;; ****************************************
 print_param
 	;; first, find out where to put it
-
 	;; if(PLUSW0 > 0) {
 	;; write lower nibble of PLUSW0
 	;; write upper nibble of INDF0
