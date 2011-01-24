@@ -21,6 +21,8 @@ digit_4 res 1
 digit_5	res 1
 digit_6 res 1
 
+warning res 1
+
 
 	code
 	global menu_drawscreen, menu_handler, menu_init
@@ -101,17 +103,17 @@ menu_handler
 	gtifz	menu_back ;*:Back
 	movlw	3
 	xorwf	key_pressed, w
-	gtifz	menu_next
+	gtifz	menu_1to8
 	movlw	15
 	xorwf	key_pressed, w
-	gtifz	menu_skip
+	gtifz	menu_next
 	goto 	finish_interrupt
 	endcase
 	case 2
 	;; Offset screen
 	movlw	12
 	xorwf	key_pressed,w	;*:Back
-	gtifz	menu_twoback
+	gtifz	menu_back
 
 	movlw	11
 	xorwf	key_pressed, w
@@ -119,7 +121,7 @@ menu_handler
 
 	movlw	15
 	xorwf	key_pressed, w
-	gtifz	menu_next
+	gtifz	menu_3
 
 	;; test for other keys AB#:
 	movlw	3
@@ -206,11 +208,11 @@ menu_handler
 
 	movlw	3
 	xorwf	key_pressed,w
-	gtifz	stats_show_previous
+	gtifz	stats_show_previous_cone
 	
 	movlw	7
 	xorwf	key_pressed,w
-	gtifz	stats_show_next
+	gtifz	stats_show_next_cone
 
 	goto	finish_interrupt
 	endcase
@@ -218,7 +220,7 @@ menu_handler
 	;; Settings screen
 	movlw	14		;#:Date
 	xorwf	key_pressed,w
-	gtifz	menu_13
+	gtifz	menu_8to13
 
 	movlw	12
 	xorwf	key_pressed,w
@@ -226,7 +228,7 @@ menu_handler
 
 	movlw	3		;A:Time
 	xorwf	key_pressed,w
-	gtifz	menu_14
+	gtifz	menu_8to14
 
 	movlw	15		;D:Stats
 	xorwf	key_pressed,w
@@ -238,7 +240,7 @@ menu_handler
 	;; Stats Selection (View or Delete)
 	movlw	3
 	xorwf	key_pressed,w
-	gtifz	menu_10		;THIS COULD BE MENU_NEXT, BUT WE HAVE TO GO INTO STATS MODE
+	gtifz	menu_9to10		;THIS COULD BE MENU_NEXT, BUT WE HAVE TO GO INTO STATS MODE
 
 	movlw	12
 	xorwf	key_pressed,w
@@ -266,7 +268,7 @@ menu_handler
 
 	movlw	15		;D: View Set data
 	xorwf	key_pressed,w
-	gtifz	menu_11
+	gtifz	menu_10to11
 
 	goto	finish_interrupt
 	endcase
@@ -274,7 +276,7 @@ menu_handler
 	;; View data set
 	movlw	12
 	xorwf	key_pressed,w
-	gtifz	menu_10
+	gtifz	menu_11to10
 
 	movlw	3		;A: Show next cone
 	xorwf	key_pressed,w
@@ -300,10 +302,43 @@ menu_handler
 	endcase
 	case 13
 	;; Enter date
-	
+	movlw	15
+	xorwf	key_pressed, w
+	gtifz	menu_13to8
+
+	;; test for other keys AB#:
+	movlw	3
+	xorwf	key_pressed, w
+	gtifz	finish_interrupt
+	movlw	7
+	xorwf	key_pressed, w
+	gtifz	finish_interrupt
+	movlw	14
+	xorwf	key_pressed, w
+	gtifz	finish_interrupt
+
+	;; otherwise, it's a number key. 
+	goto	date_append
 	endcase
 	case 14
 	;; Enter time
+	movlw	15
+	xorwf	key_pressed, w
+	gtifz	menu_14to8
+
+	;; test for other keys AB#:
+	movlw	3
+	xorwf	key_pressed, w
+	gtifz	finish_interrupt
+	movlw	7
+	xorwf	key_pressed, w
+	gtifz	finish_interrupt
+	movlw	14
+	xorwf	key_pressed, w
+	gtifz	finish_interrupt
+
+	;; otherwise, it's a number key. 
+	goto	time_append
 	endcase
 	endselect
 	
@@ -313,6 +348,13 @@ menu_default
 	goto	finish_interrupt
 
 
+date_append
+	;; appends a digit to the date
+	goto	menu_drawscreen
+
+time_append
+	;; appends a digit to the time
+	goto	menu_drawscreen
 
 	;; ****************************************
 	;; Adds an offset or interval character and updates the display
@@ -339,7 +381,7 @@ parameter_append
 	movff	INDF0,LATC
 
 	
-	goto 	menu_drawscreen
+n	goto 	menu_drawscreen
 	
 
 	;; ****************************************
@@ -427,7 +469,87 @@ menu_skip
 	goto	menu_drawscreen
 	
 
+	;; ****************************************
+menu_3
+	;; if param is > 300, issue warning; otherwise, goto interval
+	movf	param_offset, w
+	sublw	300
+	btfss	STATUS, N
+	goto	issue_warning
+	goto	menu_next
+
+menu_4
+	movf	param_interval, w
+	sublw	300
+	btfss	STATUS, N
+	goto	issue_warning
+	movf	param_interval, w
+	sublw	25
+	btfsc	STATUS, N
+	goto	issue_warning
+	goto	menu_next
+
+menu_1to8
+	movlw	7
+	movwf	state
+	goto	menu_next
+
+menu_13to8
+	;; check wether the date is in the right format, otherwise issue_Warning
+	goto	menu_1to8
+
+menu_14to8
+	;; check whether the time is in the right format, otherwise issue_warning
+	goto	menu_1to8
+
+
+menu_9to10
+	;; set up the stats_set stuff, then display the set select screen
+	goto	menu_next
+
+	
+menu_10to11
+	;; pick the right set, the display the stats screen
+	goto	menu_next
+
+menu_11to10
+	;; set up the stats_set stuff, and be at the same set as we just viewed
+	goto	menu_back
+
+menu_12
+	movlw	11
+	movwf	state
+	goto	menu_next
+
+menu_9
+	movlw	8
+	movwf	state
+	goto	menu_next
+
+menu_8to14
+	;; read the current time into the time_digit registers
+	movlw	13
+	movwf	state
+	goto	menu_next
+
+menu_8to13
+	;; read the current date into the date_digit registers
+	movlw	12
+	movwf	state
+	goto	menu_next
+
+menu_1
+	movlw	0
+	movwf	state
+	goto	menu_next
+	
 menu_drawscreen
+	;; if warning is set to true, add 12 to the state register.
+	;; then just keep going. at the end of the routine, if warning = 1, the routine will wait for 2 seconds, set warning to zero, subtract 12 from the state register, and call itself again to redraw the original screen, and then go to Mainline again.
+
+	btfsc	warning,0
+	call	activate_warning
+	
 	;;  first, load the tablepointer to the tables and write the first and
 	;;  second line to the display.
 	;;  then, take care of inserting the current variable values.
@@ -480,49 +602,134 @@ NextChar_2
 	movf	TABLAT,W
 	bnz	NextChar_2	
 
-	
+	;; if we were tricked into displaying a warning message, goto deactivate_warning to go back to our actual thing.
+
+	btfsc	warning,0 
+	goto	deactivate_warning
 	
 	;; Congrats! By now, the standard content for each state should be written.
-	
+
+	;; GO ON TO WRITE THE SPECIAL PARTS
 	select state
-	case 	3		;add the offset value
+	
+	case 	2		;add the offset value
 	movlw 	0x87		;move the cursor behind the word "Offset:"
 	call	CmdLCD
-
-	call	print_param	;offset should still be in the FSR, so print_param can do its job
+	call	print_param	;offset should still be in the FSR for print_param to use
 	movlw	0xD0
 	call	CmdLCD		;put cursor away
 	endcase
-	case 	4			;add the interval value
+	
+	case 	3			;add the interval value
 	movlw	0x89			;	call	CmdLCD
 	call	CmdLCD
 	call	print_param
 	movlw	0xD0
 	call	CmdLCD		;put cursor away
 	endcase
+
+	case	7
+	;; display the last stats
+	endcase
+
+	case	10
+	;; display the stat set selection
+	endcase
+
+	case	11
+	;; display the stats from the selected set
+	endcase
+
+	case	13
+	;; display the time entering stuff
+	endcase
+
+	case	14
+	;; display the date entering stuff
+	endcase
+	
 	endselect
 	goto 	finish_interrupt
 
 	
 LCDTbl_1
-	da "Welcome         ",0,"         Start:D",0
-	da "       Options:A",0,"*:Back    Next:D",0
-	da "Offset:_        ",0,"*:Back    Next:D",0
-	da "Interval:_      ",0,"*:Back    Next:D",0
-	da "Ready!          ",0,"*:Back   Start:D",0
-	da "Deploying ...   ",0,"         Abort:C",0
-	da "Done! Store&view",0,"*:End    stats:A",0
-	da "   cm ( )  <>:AB",0,"*:End  TDist:   ",0
+	da "Welcome         ",0,"         Start:D",0 ;0
+	da "       Options:A",0,"*:Back    Next:D",0 ;1
+	da "Offset:_        ",0,"*:Back    Next:D",0 ;2
+	da "Interval:_      ",0,"*:Back    Next:D",0 ;3
+	da "Ready!          ",0,"*:Back   Start:D",0 ;4
+	da "Deploying ...   ",0,"         Abort:C",0 ;5
+	da "Done! Store&view",0,"*:End    stats:A",0 ;6
+	da "   cm ( )  <>:AB",0,"*:End  TDist:   ",0 ;7
 
-	da "#:Date    Time:A",0,"*:Back   Stats:D",0
-	da "          View:A",0,"*:Back  Delete:B",0
-	da "           <>:AB",0,"*:Back    View:D",0
-	da "   cm ( )  <>:AB",0,"*:Back TDist:   ",0
+	da "#:Date    Time:A",0,"*:Back   Stats:D",0 ;8
+	da "          View:A",0,"*:Back  Delete:B",0 ;9
+	da "           <>:AB",0,"*:Back    View:D",0 ;10
+	da "   cm ( )  <>:AB",0,"*:Back TDist:   ",0 ;11
 
-	da "Del. all stats? ",0,"*:Back     Yes:A",0
+	da "Del. all stats? ",0,"*:Back     Yes:A",0 ;12
 
-	da "Enter Date:     ",0,"  /  /      OK:D",0
-	da "Enter Time:     ",0,"  :         OK:D",0
+	da "Enter Date:     ",0,"  /  /      OK:D",0 ;13
+	da "Enter Time:     ",0,"  :         OK:D",0 ;14
+
+	;; table continues with warning messages
+
+	da "Offset must be  ",0,"<300 cm         ",0 ;15
+	da "Interval must be",0,"<300 and >25 cm ",0 ;16
+
+	for tmp1, 0, 8
+	da "                ",0,"                ",0 ;add 9 lines of nothing
+	next tmp1
+
+	da "All stats       ",0,"deleted!        ",0 ;25
+	da "Invalid date!   ",0,"Use MM/DD/YY    ",0 ;26
+	da "Invalid time!   ",0,"Use HH:MM       ",0 ;27
+
+
+	;; ****************************************
+	;; activate_warning adds 13 to the state register to access the warning messages
+	;; in the table.
+	;; ****************************************
+	
+activate_warning
+	movf	state, w
+	addlw	13
+	movwf	state
+	return
+
+deactivate_warning
+	movf	state, w
+	addlw	256-13
+	movwf	state
+	bcf	warning,0
+	movlw	0
+	;; HERE, DELAY FOR 1.8 SECONDS, abusing the digit registers as counters
+	movlw	0xFF
+	movwf	digit_1
+	movlw	0xED
+	movwf	digit_2
+	movff	digit_2, LATC
+	movlw	0xFF
+	movwf	digit_3
+Delay1800
+	decfsz	digit_1,f
+	goto	$+2
+	decfsz	digit_2,f
+	goto	$+2
+	decfsz	digit_3,f
+	goto	Delay1800
+	nop
+	nop
+	movff	digit_2, LATA
+	;; if we just deleted all the data, don't go back but go back two
+	select state
+	case 12
+	movlw	9
+	movwf	state
+	endcase
+	endselect
+	
+	goto	menu_drawscreen	;go back to the "real" screeen
 	
 
 	;; ****************************************
@@ -674,27 +881,50 @@ NumberToASCII
 	addwf	tmp1,w
 	return
 
+issue_warning
+	bsf	warning,0
+	goto	menu_drawscreen
+
+
 	;; ****************************************
 	;; Show the next stat data set
 	;; ****************************************
-stats_show_next
+stats_show_next_cone
 	incf	stats_current_display, f
 	movlw	1
 	movwf	stats_mode	;display stat sets
-	call	menu_drawscreen
+	call	stats_show_cone
 
 	;; ****************************************
 	;; Show the previous data set
 	;; ****************************************
-stats_show_previous
+stats_show_previous_cone
 	decf	stats_current_display, f
 	movlw	1
 	movwf	stats_mode	;display stat sets
-	call	menu_drawscreen
+	call	stats_show_cone
 
+stats_show_cone
+	;; here's where the cone is actually put on the LCD.
+	goto	finish_interrupt
 
+	
+stats_show_next_set
+	;; rotate through the sets
+	goto	finish_interrupt
 
+stats_show_previous_set
+	;; rotate through the sets
+	goto	finish_interrupt
 
+stats_show_set
+	;; here's where the set is actually put on the LCD
+	goto	finish_interrupt
+
+menu_delete_data
+	;; deletes all stats on the EEPROM
+	goto	issue_warning
+	goto	finish_interrupt
 	
 finish_interrupt
 	bcf	INTCON3, INT1IF	;clear RB1 interrupt bit
