@@ -8,12 +8,17 @@ list P=18F4620, F=INHX32, C=160, N=80, ST=OFF, MM=OFF, R=DEC
 
 extern state, param_offset, param_interval, dist_traveled, stats_mode, tmp1, stats_current_display
 
+	
 udata_acs
 key_pressed res 1
 
 offset_bcd res 2
 interval_bcd res 2
 
+d1 res 1
+d2 res 1
+d3 res 1
+	
 digit_1 res 1
 digit_2	res 1
 digit_3	res 1
@@ -87,7 +92,7 @@ menu_handler
 		;Welcome screen
 	movf	key_pressed, w
 	xorlw	0xF	;D:Next
-	movwf	LATA
+
 	gtifz	menu_next ;
 	goto	finish_interrupt
 	endcase
@@ -378,7 +383,7 @@ parameter_append
 	movf	key_pressed,w
 	iorwf	INDF0,f
 
-	movff	INDF0,LATC
+
 
 	
 n	goto 	menu_drawscreen
@@ -440,11 +445,11 @@ menu_prepareforinput
 	movwf	digit_2
 	movwf	digit_3
 	select	state
-	case	3
+	case	2
 	lfsr	0, offset_bcd
 	lfsr	1, param_offset
 	endcase
-	case	4
+	case	3
 	lfsr	0, interval_bcd
 	lfsr	1, param_interval
 	endcase
@@ -470,22 +475,35 @@ menu_skip
 	
 
 	;; ****************************************
+	;; GOTO MENU_3 (OFFSET SCREEN->INTERVAL SCREEN)
+	;; ****************************************
 menu_3
 	;; if param is > 300, issue warning; otherwise, goto interval
-	movf	param_offset, w
-	sublw	300
-	btfss	STATUS, N
+
+	movf	param_offset+1,w ;put the high byte of param_offset into w
+	sublw	1		 ;subtract 1, which is the bit for 256
+	skpz			 ;if its bigger than 256, keep testing
+	goto	results16	 
+	movf	param_offset,w	;put the low byte of param_offset into w
+	sublw	low .300	;subtract the low byte of 300
+results16
+	skpc			;if we're over, issue a warning, if not skip.
 	goto	issue_warning
 	goto	menu_next
+
+
+	;; ****************************************
+	;; GOTO MENU_4 (INTERVAL SCREEN)
+	;; ****************************************
 
 menu_4
 	movf	param_interval, w
 	sublw	300
-	btfss	STATUS, N
+	btfsc	STATUS, N
 	goto	issue_warning
 	movf	param_interval, w
 	sublw	25
-	btfsc	STATUS, N
+	btfss	STATUS, N
 	goto	issue_warning
 	goto	menu_next
 
@@ -677,9 +695,15 @@ LCDTbl_1
 	da "Offset must be  ",0,"<300 cm         ",0 ;15
 	da "Interval must be",0,"<300 and >25 cm ",0 ;16
 
-	for tmp1, 0, 8
-	da "                ",0,"                ",0 ;add 9 lines of nothing
-	next tmp1
+
+	da "                ",0,"                ",0
+	da "                ",0,"                ",0
+	da "                ",0,"                ",0
+	da "                ",0,"                ",0
+	da "                ",0,"                ",0
+	da "                ",0,"                ",0
+	da "                ",0,"                ",0
+	da "                ",0,"                ",0
 
 	da "All stats       ",0,"deleted!        ",0 ;25
 	da "Invalid date!   ",0,"Use MM/DD/YY    ",0 ;26
@@ -704,23 +728,8 @@ deactivate_warning
 	bcf	warning,0
 	movlw	0
 	;; HERE, DELAY FOR 1.8 SECONDS, abusing the digit registers as counters
-	movlw	0xFF
-	movwf	digit_1
-	movlw	0xED
-	movwf	digit_2
-	movff	digit_2, LATC
-	movlw	0xFF
-	movwf	digit_3
-Delay1800
-	decfsz	digit_1,f
-	goto	$+2
-	decfsz	digit_2,f
-	goto	$+2
-	decfsz	digit_3,f
-	goto	Delay1800
-	nop
-	nop
-	movff	digit_2, LATA
+	call	Delay18
+
 	;; if we just deleted all the data, don't go back but go back two
 	select state
 	case 12
@@ -736,24 +745,8 @@ Delay1800
 	;; Print_param prints the BCD value that's currently in the FSR to the LCD
 	;; ****************************************
 print_param
-	;; first, find out where to put it
-	;; if(PLUSW0 > 0) {
-	;; write lower nibble of PLUSW0
-	;; write upper nibble of INDF0
-	;; write lower nibble of INDF0
-	;; } else if(INDF0>15 and PLUSW==0) {
-	;; write upper nibble of INDF0
-	;; write lower nibble of INDF0
-	;; write space
-	;; } else if(INDF0>0 and PLUSW==0) {
-	;; write lower nibble of INDF0
-	;; write space
-	;; write space
-	;; } else if(INDF==0 and PLUSW==0){
-	;; write 0
-	;; write space
-	;; write space
-	;; }
+
+
 
 	movf	PREINC0, w	;	movf	POSTDEC0,f
 	bz	print_param_twodigits ;do the following if there are three digits
@@ -851,6 +844,10 @@ print_param_zero
 print_param_store
 	;; take digits 1, 2, and 3 and store them as an actual number in FSR1.
 	clrf	INDF1		;clear the register
+	clrf	PREINC1
+	movf	POSTDEC1, f
+	clrf	PRODL
+	clrf	PRODH
 	
 	movlw	10
 	mulwf	digit_2		;PROD=digit2*10
@@ -864,11 +861,18 @@ print_param_store
 	mulwf	digit_3		;PROD=digit3*100
 
 	movf	PRODL,w
-	addwfc	INDF1,f		;add lower byte
+	addwf	INDF1,f		;add lower byte
 	movf	PRODH,w
-	addwf	PREINC1,f	;add upper byte to upper byte of INDF1
+	addwfc	PREINC1,f	;add upper byte to upper byte of INDF1
+	movf	POSTDEC1, f
 
+
+	movff	INDF1, LATC
+	movff	PREINC1, LATA
+	movf	POSTDEC1, f
 	
+
+
 	return
 
 	
@@ -929,4 +933,34 @@ menu_delete_data
 finish_interrupt
 	bcf	INTCON3, INT1IF	;clear RB1 interrupt bit
 	retfie
+
+
+Delay18
+	
+			;4499990 cycles
+	movlw	0x27
+	movwf	d1
+	movlw	0xD0
+	movwf	d2
+	movlw	0x0A
+	movwf	d3
+	
+Delay_0
+	decfsz	d1, f
+	bra	Delay_1
+	decfsz	d2, f
+Delay_1
+	bra	Delay_2
+	decfsz	d3, f
+Delay_2
+	bra	Delay_0
+
+				;6 cycles
+			;4 cycles (including call)
+	return
+
+
+
+
+
 end
