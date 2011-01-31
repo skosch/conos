@@ -154,7 +154,7 @@ menu_handler
 	
 	movlw	15
 	xorwf	key_pressed,w
-	gtifz	menu_next	
+	gtifz	menu_4	
 
 	;; test for other keys AB#:
 	movlw	3
@@ -483,10 +483,10 @@ menu_3
 	movf	param_offset+1,w ;put the high byte of param_offset into w
 	sublw	1		 ;subtract 1, which is the bit for 256
 	skpz			 ;if its bigger than 256, keep testing
-	goto	results16	 
+	goto	results163	 
 	movf	param_offset,w	;put the low byte of param_offset into w
 	sublw	low .300	;subtract the low byte of 300
-results16
+results163
 	skpc			;if we're over, issue a warning, if not skip.
 	goto	issue_warning
 	goto	menu_next
@@ -497,14 +497,21 @@ results16
 	;; ****************************************
 
 menu_4
-	movf	param_interval, w
-	sublw	300
-	btfsc	STATUS, N
+	movf	param_interval+1,w ;put the high byte of param_offset into w
+	sublw	1		 ;subtract 1, which is the bit for 256
+	skpz			 ;if its bigger than 256, keep testing
+	goto	results164	 
+	movf	param_interval,w	;put the low byte of param_offset into w
+	sublw	low .300	;subtract the low byte of 300
+results164
+	skpc			;if we're over, issue a warning, if not skip.
 	goto	issue_warning
-	movf	param_interval, w
-	sublw	25
-	btfss	STATUS, N
+
+	movf	param_interval,w ;same thing, now with 25
+	sublw	.25
+	btfsc	STATUS,C
 	goto	issue_warning
+	
 	goto	menu_next
 
 menu_1to8
